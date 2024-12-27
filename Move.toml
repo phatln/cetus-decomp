@@ -1,0 +1,22 @@
+[package]
+name = "cetus-decomp"
+version = "2.1.0"
+authors = []
+
+[addresses]
+cetus = "_"
+
+[dev-addresses]
+cetus = "0xe8c54367192c87f5173dc8dda21819519b604ac0b14ad8123a14fc8a36c051bc"
+
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-framework.git"
+rev = "mainnet"
+subdir = "aptos-framework"
+
+[dependencies.AptosToken]
+git = "https://github.com/aptos-labs/aptos-framework.git"
+rev = "mainnet"
+subdir = "aptos-token"
+
+[dev-dependencies]
