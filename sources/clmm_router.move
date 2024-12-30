@@ -108,31 +108,41 @@ module cetus::clmm_router {
     }
 
     public entry fun add_liquidity<T0, T1>(
-      arg0: &signer, arg1: address, arg2: u128, arg3: u64, arg4: u64, arg5: u64, arg6: u64, arg7: bool, arg8: u64) {
-        let v0 = if (arg7) {
-            cetus::pool::open_position<T0, T1>(arg0, arg1, cetus::i64::from_u64(arg5), cetus::i64::from_u64(arg6))
+        signer: &signer,
+        pool_addr: address,
+        delta_liquidity: u128,
+        max_amount_a: u64,
+        max_amount_b: u64,
+        tick_lower: u64,
+        tick_upper: u64,
+        is_open: bool,
+        index: u64) {
+        let pos_index = if (is_open) {
+            cetus::pool::open_position<T0, T1>(signer, pool_addr, cetus::i64::from_u64(tick_lower), cetus::i64::from_u64(
+                tick_upper
+            ))
         } else {
-            cetus::pool::check_position_authority<T0, T1>(arg0, arg1, arg8);
-            let (v1, v2) = cetus::pool::get_position_tick_range<T0, T1>(arg1, arg8);
-            assert!(cetus::i64::eq(cetus::i64::from_u64(arg5), v1), 3);
-            assert!(cetus::i64::eq(cetus::i64::from_u64(arg6), v2), 3);
-            arg8
+            cetus::pool::check_position_authority<T0, T1>(signer, pool_addr, index);
+            let (lower_index, upper_index) = cetus::pool::get_position_tick_range<T0, T1>(pool_addr, index);
+            assert!(cetus::i64::eq(cetus::i64::from_u64(tick_lower), lower_index), 3);
+            assert!(cetus::i64::eq(cetus::i64::from_u64(tick_upper), upper_index), 3);
+            index
         };
-        let v3 = cetus::pool::add_liquidity<T0, T1>(arg1, arg2, v0);
-        let (v4, v5) = cetus::pool::add_liqudity_pay_amount<T0, T1>(&v3);
-        assert!(v4 <= arg3, 1);
-        assert!(v5 <= arg4, 1);
+        let add_lq_receipt = cetus::pool::add_liquidity<T0, T1>(pool_addr, delta_liquidity, pos_index);
+        let (v4, v5) = cetus::pool::add_liqudity_pay_amount<T0, T1>(&add_lq_receipt);
+        assert!(v4 <= max_amount_a, 1);
+        assert!(v5 <= max_amount_b, 1);
         let v6 = if (v4 > 0) {
-            0x1::coin::withdraw<T0>(arg0, v4)
+            0x1::coin::withdraw<T0>(signer, v4)
         } else {
             0x1::coin::zero<T0>()
         };
         let v7 = if (v5 > 0) {
-            0x1::coin::withdraw<T1>(arg0, v5)
+            0x1::coin::withdraw<T1>(signer, v5)
         } else {
             0x1::coin::zero<T1>()
         };
-        cetus::pool::repay_add_liquidity<T0, T1>(v6, v7, v3);
+        cetus::pool::repay_add_liquidity<T0, T1>(v6, v7, add_lq_receipt);
     }
 
     public entry fun collect_fee<T0, T1>(arg0: &signer, arg1: address, arg2: u64) {
