@@ -218,39 +218,50 @@ module cetus::clmm_router {
         cetus::partner::accept_receiver(arg0, arg1);
     }
 
-    public entry fun add_liquidity_fix_token<T0, T1>(arg0: &signer, arg1: address, arg2: u64, arg3: u64, arg4: bool, arg5: u64, arg6: u64, arg7: bool, arg8: u64) {
-        let v0 = if (arg7) {
-            cetus::pool::open_position<T0, T1>(arg0, arg1, cetus::i64::from_u64(arg5), cetus::i64::from_u64(arg6))
+    public entry fun add_liquidity_fix_token<T0, T1>(
+        signer: &signer,
+        pool_addr: address,
+        amount_a: u64,
+        amount_b: u64,
+        fix_amount_a: bool,
+        lower_tick_index: u64,
+        upper_tick_index: u64,
+        is_open: bool,
+        index: u64) {
+        let pos_index = if (is_open) {
+            cetus::pool::open_position<T0, T1>(signer, pool_addr, cetus::i64::from_u64(lower_tick_index), cetus::i64::from_u64(
+                upper_tick_index
+            ))
         } else {
-            cetus::pool::check_position_authority<T0, T1>(arg0, arg1, arg8);
-            let (v1, v2) = cetus::pool::get_position_tick_range<T0, T1>(arg1, arg8);
-            assert!(cetus::i64::eq(cetus::i64::from_u64(arg5), v1), 3);
-            assert!(cetus::i64::eq(cetus::i64::from_u64(arg6), v2), 3);
-            arg8
+            cetus::pool::check_position_authority<T0, T1>(signer, pool_addr, index);
+            let (lower_index, upper_index) = cetus::pool::get_position_tick_range<T0, T1>(pool_addr, index);
+            assert!(cetus::i64::eq(cetus::i64::from_u64(lower_tick_index), lower_index), 3);
+            assert!(cetus::i64::eq(cetus::i64::from_u64(upper_tick_index), upper_index), 3);
+            index
         };
-        let v3 = if (arg4) {
-            arg2
+        let amount = if (fix_amount_a) {
+            amount_a
         } else {
-            arg3
+            amount_b
         };
-        let v4 = cetus::pool::add_liquidity_fix_coin<T0, T1>(arg1, v3, arg4, v0);
-        let (v5, v6) = cetus::pool::add_liqudity_pay_amount<T0, T1>(&v4);
-        if (arg4) {
-            assert!(arg2 == v5 && v6 <= arg3, 1);
+        let add_lq_receipt = cetus::pool::add_liquidity_fix_coin<T0, T1>(pool_addr, amount, fix_amount_a, pos_index);
+        let (v5, v6) = cetus::pool::add_liqudity_pay_amount<T0, T1>(&add_lq_receipt);
+        if (fix_amount_a) {
+            assert!(amount_a == v5 && v6 <= amount_b, 1);
         } else {
-            assert!(arg3 == v6 && v5 <= arg2, 1);
+            assert!(amount_b == v6 && v5 <= amount_a, 1);
         };
         let v7 = if (v5 > 0) {
-            0x1::coin::withdraw<T0>(arg0, v5)
+            0x1::coin::withdraw<T0>(signer, v5)
         } else {
             0x1::coin::zero<T0>()
         };
         let v8 = if (v6 > 0) {
-            0x1::coin::withdraw<T1>(arg0, v6)
+            0x1::coin::withdraw<T1>(signer, v6)
         } else {
             0x1::coin::zero<T1>()
         };
-        cetus::pool::repay_add_liquidity<T0, T1>(v7, v8, v4);
+        cetus::pool::repay_add_liquidity<T0, T1>(v7, v8, add_lq_receipt);
     }
 
     public entry fun close_position<T0, T1>(arg0: &signer, arg1: address, arg2: u64) {

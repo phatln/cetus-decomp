@@ -1,5 +1,13 @@
 module cetus::clmm_math {
-    public fun compute_swap_step(arg0: u128, arg1: u128, arg2: u128, arg3: u64, arg4: u64, arg5: bool, arg6: bool) : (u64, u64, u128, u64) {
+    public fun compute_swap_step(
+        arg0: u128,
+        arg1: u128,
+        arg2: u128,
+        arg3: u64,
+        arg4: u64,
+        arg5: bool,
+        arg6: bool
+    ): (u64, u64, u128, u64) {
         if (arg2 == 0) {
             return (0, 0, arg1, 0)
         };
@@ -31,24 +39,46 @@ module cetus::clmm_math {
         (v0, v1, v3, v2)
     }
 
-    public fun fee_rate_denominator() : u64 {
+    public fun fee_rate_denominator(): u64 {
         1000000
     }
 
-    public fun get_amount_by_liquidity(arg0: cetus::i64::I64, arg1: cetus::i64::I64, arg2: cetus::i64::I64, arg3: u128, arg4: u128, arg5: bool) : (u64, u64) {
+    public fun get_amount_by_liquidity(
+        arg0: cetus::i64::I64,
+        arg1: cetus::i64::I64,
+        arg2: cetus::i64::I64,
+        arg3: u128,
+        arg4: u128,
+        arg5: bool
+    ): (u64, u64) {
         if (arg4 == 0) {
             return (0, 0)
         };
         if (cetus::i64::lt(arg2, arg0)) {
-            (get_delta_a(cetus::tick_math::get_sqrt_price_at_tick(arg0), cetus::tick_math::get_sqrt_price_at_tick(arg1), arg4, arg5), 0)
+            (get_delta_a(
+                cetus::tick_math::get_sqrt_price_at_tick(arg0),
+                cetus::tick_math::get_sqrt_price_at_tick(arg1),
+                arg4,
+                arg5
+            ), 0)
         } else if (cetus::i64::lt(arg2, arg1)) {
-            (get_delta_a(arg3, cetus::tick_math::get_sqrt_price_at_tick(arg1), arg4, arg5), get_delta_b(cetus::tick_math::get_sqrt_price_at_tick(arg0), arg3, arg4, arg5))
+            (get_delta_a(arg3, cetus::tick_math::get_sqrt_price_at_tick(arg1), arg4, arg5), get_delta_b(
+                cetus::tick_math::get_sqrt_price_at_tick(arg0),
+                arg3,
+                arg4,
+                arg5
+            ))
         } else {
-            (0, get_delta_b(cetus::tick_math::get_sqrt_price_at_tick(arg0), cetus::tick_math::get_sqrt_price_at_tick(arg1), arg4, arg5))
+            (0, get_delta_b(
+                cetus::tick_math::get_sqrt_price_at_tick(arg0),
+                cetus::tick_math::get_sqrt_price_at_tick(arg1),
+                arg4,
+                arg5
+            ))
         }
     }
 
-    public fun get_delta_a(arg0: u128, arg1: u128, arg2: u128, arg3: bool) : u64 {
+    public fun get_delta_a(arg0: u128, arg1: u128, arg2: u128, arg3: bool): u64 {
         let v0 = if (arg0 > arg1) {
             arg0 - arg1
         } else {
@@ -64,7 +94,7 @@ module cetus::clmm_math {
         (cetus::math_u256::div_round(v1, cetus::full_math_u128::full_mul_v2(arg0, arg1), arg3) as u64)
     }
 
-    public fun get_delta_b(arg0: u128, arg1: u128, arg2: u128, arg3: bool) : u64 {
+    public fun get_delta_b(arg0: u128, arg1: u128, arg2: u128, arg3: bool): u64 {
         let v0 = if (arg0 > arg1) {
             arg0 - arg1
         } else {
@@ -80,11 +110,11 @@ module cetus::clmm_math {
         ((v1 >> 64) as u64)
     }
 
-    public fun get_delta_down_from_output(arg0: u128, arg1: u128, arg2: u128, arg3: bool) : cetus::u256::U256 {
+    public fun get_delta_down_from_output(arg0: u128, arg1: u128, arg2: u128, arg3: bool): cetus::u256::U256 {
         abort 7
     }
 
-    public fun get_delta_down_from_output_v2(arg0: u128, arg1: u128, arg2: u128, arg3: bool) : u256 {
+    public fun get_delta_down_from_output_v2(arg0: u128, arg1: u128, arg2: u128, arg3: bool): u256 {
         let v0 = if (arg0 > arg1) {
             arg0 - arg1
         } else {
@@ -104,11 +134,11 @@ module cetus::clmm_math {
         }
     }
 
-    public fun get_delta_up_from_input(arg0: u128, arg1: u128, arg2: u128, arg3: bool) : cetus::u256::U256 {
+    public fun get_delta_up_from_input(arg0: u128, arg1: u128, arg2: u128, arg3: bool): cetus::u256::U256 {
         abort 7
     }
 
-    public fun get_delta_up_from_input_v2(arg0: u128, arg1: u128, arg2: u128, arg3: bool) : u256 {
+    public fun get_delta_up_from_input_v2(arg0: u128, arg1: u128, arg2: u128, arg3: bool): u256 {
         let v0 = if (arg0 > arg1) {
             arg0 - arg1
         } else {
@@ -132,43 +162,83 @@ module cetus::clmm_math {
         }
     }
 
-    public fun get_liquidity_from_a(arg0: u128, arg1: u128, arg2: u64, arg3: bool) : u128 {
+    public fun get_liquidity_from_a(arg0: u128, arg1: u128, arg2: u64, arg3: bool): u128 {
         let v0 = if (arg0 > arg1) {
             arg0 - arg1
         } else {
             arg1 - arg0
         };
-        (cetus::math_u256::div_round((cetus::full_math_u128::full_mul_v2(arg0, arg1) >> 64) * (arg2 as u256), (v0 as u256), arg3) as u128)
+        (cetus::math_u256::div_round(
+            (cetus::full_math_u128::full_mul_v2(arg0, arg1) >> 64) * (arg2 as u256),
+            (v0 as u256),
+            arg3
+        ) as u128)
     }
 
-    public fun get_liquidity_from_amount(arg0: cetus::i64::I64, arg1: cetus::i64::I64, arg2: cetus::i64::I64, arg3: u128, arg4: u64, arg5: bool) : (u128, u64, u64) {
-        let v0 = 0;
-        let v1 = 0;
-        let v2 = if (arg5) {
-            v0 = arg4;
-            if (cetus::i64::lt(arg2, arg0)) {
-                get_liquidity_from_a(cetus::tick_math::get_sqrt_price_at_tick(arg0), cetus::tick_math::get_sqrt_price_at_tick(arg1), arg4, false)
+    public fun get_liquidity_from_amount(
+        lower_index: cetus::i64::I64,
+        upper_index: cetus::i64::I64,
+        current_index: cetus::i64::I64,
+        current_sqrt_price: u128,
+        amount: u64,
+        fix_amount_a: bool
+    ): (u128, u64, u64) {
+        let amount_a = 0;
+        let amount_b = 0;
+        let liquidity = if (fix_amount_a) {
+            amount_a = amount;
+            if (cetus::i64::lt(current_index, lower_index)) {
+                get_liquidity_from_a(
+                    cetus::tick_math::get_sqrt_price_at_tick(lower_index),
+                    cetus::tick_math::get_sqrt_price_at_tick(
+                        upper_index
+                    ),
+                    amount,
+                    false
+                )
             } else {
-                assert!(cetus::i64::lt(arg2, arg1), 6);
-                let v3 = get_liquidity_from_a(arg3, cetus::tick_math::get_sqrt_price_at_tick(arg1), arg4, false);
-                v1 = get_delta_b(arg3, cetus::tick_math::get_sqrt_price_at_tick(arg0), v3, true);
-                v3
+                assert!(cetus::i64::lt(current_index, upper_index), 6);
+                let liquidity = get_liquidity_from_a(
+                    current_sqrt_price,
+                    cetus::tick_math::get_sqrt_price_at_tick(upper_index),
+                    amount,
+                    false);
+                amount_b = get_delta_b(
+                    current_sqrt_price,
+                    cetus::tick_math::get_sqrt_price_at_tick(lower_index),
+                    liquidity,
+                    true
+                );
+                liquidity
             }
         } else {
-            v1 = arg4;
-            if (cetus::i64::gte(arg2, arg1)) {
-                get_liquidity_from_b(cetus::tick_math::get_sqrt_price_at_tick(arg0), cetus::tick_math::get_sqrt_price_at_tick(arg1), arg4, false)
+            amount_b = amount;
+            if (cetus::i64::gte(current_index, upper_index)) {
+                get_liquidity_from_b(
+                    cetus::tick_math::get_sqrt_price_at_tick(lower_index),
+                    cetus::tick_math::get_sqrt_price_at_tick(
+                        upper_index
+                    ),
+                    amount,
+                    false
+                )
             } else {
-                assert!(cetus::i64::gte(arg2, arg0), 6);
-                let v4 = get_liquidity_from_b(cetus::tick_math::get_sqrt_price_at_tick(arg0), arg3, arg4, false);
-                v0 = get_delta_a(arg3, cetus::tick_math::get_sqrt_price_at_tick(arg1), v4, true);
-                v4
+                assert!(cetus::i64::gte(current_index, lower_index), 6);
+                let liquidity = get_liquidity_from_b(cetus::tick_math::get_sqrt_price_at_tick(lower_index),
+                    current_sqrt_price, amount, false);
+                amount_a = get_delta_a(
+                    current_sqrt_price,
+                    cetus::tick_math::get_sqrt_price_at_tick(upper_index),
+                    liquidity,
+                    true
+                );
+                liquidity
             }
         };
-        (v2, v0, v1)
+        (liquidity, amount_a, amount_b)
     }
 
-    public fun get_liquidity_from_b(arg0: u128, arg1: u128, arg2: u64, arg3: bool) : u128 {
+    public fun get_liquidity_from_b(arg0: u128, arg1: u128, arg2: u64, arg3: bool): u128 {
         let v0 = if (arg0 > arg1) {
             arg0 - arg1
         } else {
@@ -177,7 +247,7 @@ module cetus::clmm_math {
         (cetus::math_u256::div_round((arg2 as u256) << 64, (v0 as u256), arg3) as u128)
     }
 
-    public fun get_next_sqrt_price_a_up(arg0: u128, arg1: u128, arg2: u64, arg3: bool) : u128 {
+    public fun get_next_sqrt_price_a_up(arg0: u128, arg1: u128, arg2: u64, arg3: bool): u128 {
         if (arg2 == 0) {
             return arg0
         };
@@ -186,9 +256,17 @@ module cetus::clmm_math {
             abort 3
         };
         let v2 = if (arg3) {
-            (cetus::math_u256::div_round(v0, ((arg1 as u256) << 64) + cetus::full_math_u128::full_mul_v2(arg0, (arg2 as u128)), true) as u128)
+            (cetus::math_u256::div_round(
+                v0,
+                ((arg1 as u256) << 64) + cetus::full_math_u128::full_mul_v2(arg0, (arg2 as u128)),
+                true
+            ) as u128)
         } else {
-            (cetus::math_u256::div_round(v0, ((arg1 as u256) << 64) - cetus::full_math_u128::full_mul_v2(arg0, (arg2 as u128)), true) as u128)
+            (cetus::math_u256::div_round(
+                v0,
+                ((arg1 as u256) << 64) - cetus::full_math_u128::full_mul_v2(arg0, (arg2 as u128)),
+                true
+            ) as u128)
         };
         if (v2 > cetus::tick_math::max_sqrt_price()) {
             abort 1
@@ -199,7 +277,7 @@ module cetus::clmm_math {
         v2
     }
 
-    public fun get_next_sqrt_price_b_down(arg0: u128, arg1: u128, arg2: u64, arg3: bool) : u128 {
+    public fun get_next_sqrt_price_b_down(arg0: u128, arg1: u128, arg2: u64, arg3: bool): u128 {
         let v0 = if (arg3) {
             arg0 + cetus::math_u128::checked_div_round((arg2 as u128) << 64, arg1, !arg3)
         } else {
@@ -214,7 +292,7 @@ module cetus::clmm_math {
         v0
     }
 
-    public fun get_next_sqrt_price_from_input(arg0: u128, arg1: u128, arg2: u64, arg3: bool) : u128 {
+    public fun get_next_sqrt_price_from_input(arg0: u128, arg1: u128, arg2: u64, arg3: bool): u128 {
         if (arg3) {
             get_next_sqrt_price_a_up(arg0, arg1, arg2, true)
         } else {
@@ -222,7 +300,7 @@ module cetus::clmm_math {
         }
     }
 
-    public fun get_next_sqrt_price_from_output(arg0: u128, arg1: u128, arg2: u64, arg3: bool) : u128 {
+    public fun get_next_sqrt_price_from_output(arg0: u128, arg1: u128, arg2: u64, arg3: bool): u128 {
         if (arg3) {
             get_next_sqrt_price_b_down(arg0, arg1, arg2, false)
         } else {
