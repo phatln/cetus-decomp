@@ -264,22 +264,22 @@ module cetus::pool {
         v0
     }
 
-    public fun accept_rewarder_authority<T0, T1>(arg0: &signer, arg1: address, arg2: u8) acquires Pool {
-        let v0 = 0x1::signer::address_of(arg0);
-        let v1 = borrow_global_mut<Pool<T0, T1>>(arg1);
-        assert_status<T0, T1>(v1);
-        assert!((arg2 as u64) < 0x1::vector::length<Rewarder>(&v1.rewarder_infos), 23);
-        let v2 = 0x1::vector::borrow_mut<Rewarder>(&mut v1.rewarder_infos, (arg2 as u64));
-        assert!(v2.pending_authority == v0, 26);
-        v2.pending_authority = @0x0;
-        v2.authority = v0;
-        let v3 = AcceptRewardAuthEvent {
-            pool_address: arg1,
-            index: arg2,
-            authority: v0,
-        };
-        0x1::event::emit_event<AcceptRewardAuthEvent>(&mut v1.accept_reward_auth_events, v3);
-    }
+    // public fun accept_rewarder_authority<T0, T1>(arg0: &signer, arg1: address, arg2: u8) acquires Pool {
+    //     let v0 = 0x1::signer::address_of(arg0);
+    //     let v1 = borrow_global_mut<Pool<T0, T1>>(arg1);
+    //     assert_status<T0, T1>(v1);
+    //     assert!((arg2 as u64) < 0x1::vector::length<Rewarder>(&v1.rewarder_infos), 23);
+    //     let v2 = 0x1::vector::borrow_mut<Rewarder>(&mut v1.rewarder_infos, (arg2 as u64));
+    //     assert!(v2.pending_authority == v0, 26);
+    //     v2.pending_authority = @0x0;
+    //     v2.authority = v0;
+    //     let v3 = AcceptRewardAuthEvent {
+    //         pool_address: arg1,
+    //         index: arg2,
+    //         authority: v0,
+    //     };
+    //     0x1::event::emit_event<AcceptRewardAuthEvent>(&mut v1.accept_reward_auth_events, v3);
+    // }
 
     public fun add_liqudity_pay_amount<T0, T1>(arg0: &AddLiquidityReceipt<T0, T1>): (u64, u64) {
         (arg0.amount_a, arg0.amount_b)
@@ -542,92 +542,92 @@ module cetus::pool {
         true
     }
 
-    public fun collect_fee<T0, T1>(
-        arg0: &signer,
-        arg1: address,
-        arg2: u64,
-        arg3: bool
-    ): (0x1::coin::Coin<T0>, 0x1::coin::Coin<T1>) acquires Pool {
-        check_position_authority<T0, T1>(arg0, arg1, arg2);
-        let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
-        assert_status<T0, T1>(v0);
-        let v1 = if (arg3) {
-            let (v2, v3) = get_position_tick_range_by_pool<T0, T1>(v0, arg2);
-            let (v4, v5) = get_fee_in_tick_range<T0, T1>(v0, v2, v3);
-            let v6 = 0x1::table::borrow_mut<u64, Position>(&mut v0.positions, arg2);
-            update_position_fee(v6, v4, v5);
-            v6
-        } else {
-            0x1::table::borrow_mut<u64, Position>(&mut v0.positions, arg2)
-        };
-        let v7 = v1.fee_owed_a;
-        let v8 = v1.fee_owed_b;
-        v1.fee_owed_a = 0;
-        v1.fee_owed_b = 0;
-        let v9 = CollectFeeEvent {
-            index: arg2,
-            user: 0x1::signer::address_of(arg0),
-            pool_address: arg1,
-            amount_a: v7,
-            amount_b: v8,
-        };
-        0x1::event::emit_event<CollectFeeEvent>(&mut v0.collect_fee_events, v9);
-        (0x1::coin::extract<T0>(&mut v0.coin_a, v7), 0x1::coin::extract<T1>(&mut v0.coin_b, v8))
-    }
+    // public fun collect_fee<T0, T1>(
+    //     arg0: &signer,
+    //     arg1: address,
+    //     arg2: u64,
+    //     arg3: bool
+    // ): (0x1::coin::Coin<T0>, 0x1::coin::Coin<T1>) acquires Pool {
+    //     check_position_authority<T0, T1>(arg0, arg1, arg2);
+    //     let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
+    //     assert_status<T0, T1>(v0);
+    //     let v1 = if (arg3) {
+    //         let (v2, v3) = get_position_tick_range_by_pool<T0, T1>(v0, arg2);
+    //         let (v4, v5) = get_fee_in_tick_range<T0, T1>(v0, v2, v3);
+    //         let v6 = 0x1::table::borrow_mut<u64, Position>(&mut v0.positions, arg2);
+    //         update_position_fee(v6, v4, v5);
+    //         v6
+    //     } else {
+    //         0x1::table::borrow_mut<u64, Position>(&mut v0.positions, arg2)
+    //     };
+    //     let v7 = v1.fee_owed_a;
+    //     let v8 = v1.fee_owed_b;
+    //     v1.fee_owed_a = 0;
+    //     v1.fee_owed_b = 0;
+    //     let v9 = CollectFeeEvent {
+    //         index: arg2,
+    //         user: 0x1::signer::address_of(arg0),
+    //         pool_address: arg1,
+    //         amount_a: v7,
+    //         amount_b: v8,
+    //     };
+    //     0x1::event::emit_event<CollectFeeEvent>(&mut v0.collect_fee_events, v9);
+    //     (0x1::coin::extract<T0>(&mut v0.coin_a, v7), 0x1::coin::extract<T1>(&mut v0.coin_b, v8))
+    // }
 
-    public fun collect_protocol_fee<T0, T1>(
-        arg0: &signer,
-        arg1: address
-    ): (0x1::coin::Coin<T0>, 0x1::coin::Coin<T1>) acquires Pool {
-        cetus::config::assert_protocol_fee_claim_authority(arg0);
-        let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
-        assert_status<T0, T1>(v0);
-        let v1 = v0.fee_protocol_coin_a;
-        let v2 = v0.fee_protocol_coin_b;
-        v0.fee_protocol_coin_a = 0;
-        v0.fee_protocol_coin_b = 0;
-        let v3 = CollectProtocolFeeEvent {
-            pool_address: arg1,
-            amount_a: v1,
-            amount_b: v2,
-        };
-        0x1::event::emit_event<CollectProtocolFeeEvent>(&mut v0.collect_protocol_fee_events, v3);
-        (0x1::coin::extract<T0>(&mut v0.coin_a, v1), 0x1::coin::extract<T1>(&mut v0.coin_b, v2))
-    }
+    // public fun collect_protocol_fee<T0, T1>(
+    //     arg0: &signer,
+    //     arg1: address
+    // ): (0x1::coin::Coin<T0>, 0x1::coin::Coin<T1>) acquires Pool {
+    //     cetus::config::assert_protocol_fee_claim_authority(arg0);
+    //     let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
+    //     assert_status<T0, T1>(v0);
+    //     let v1 = v0.fee_protocol_coin_a;
+    //     let v2 = v0.fee_protocol_coin_b;
+    //     v0.fee_protocol_coin_a = 0;
+    //     v0.fee_protocol_coin_b = 0;
+    //     let v3 = CollectProtocolFeeEvent {
+    //         pool_address: arg1,
+    //         amount_a: v1,
+    //         amount_b: v2,
+    //     };
+    //     0x1::event::emit_event<CollectProtocolFeeEvent>(&mut v0.collect_protocol_fee_events, v3);
+    //     (0x1::coin::extract<T0>(&mut v0.coin_a, v1), 0x1::coin::extract<T1>(&mut v0.coin_b, v2))
+    // }
 
-    public fun collect_rewarder<T0, T1, T2>(
-        arg0: &signer,
-        arg1: address,
-        arg2: u64,
-        arg3: u8,
-        arg4: bool
-    ): 0x1::coin::Coin<T2> acquires Pool {
-        check_position_authority<T0, T1>(arg0, arg1, arg2);
-        let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
-        assert_status<T0, T1>(v0);
-        update_rewarder<T0, T1>(v0);
-        let v1 = if (arg4) {
-            let (v2, v3) = get_position_tick_range_by_pool<T0, T1>(v0, arg2);
-            let v4 = 0x1::table::borrow_mut<u64, Position>(&mut v0.positions, arg2);
-            update_position_rewarder(v4, get_reward_in_tick_range<T0, T1>(v0, v2, v3));
-            v4
-        } else {
-            0x1::table::borrow_mut<u64, Position>(&mut v0.positions, arg2)
-        };
-        let v5 = 0x1::account::create_signer_with_capability(&v0.signer_cap);
-        let v6 = &mut 0x1::vector::borrow_mut<PositionRewarder>(&mut v1.rewarder_infos, (arg3 as u64)).amount_owed;
-        let v7 = 0x1::coin::withdraw<T2>(&v5, *v6);
-        *v6 = 0;
-        let v8 = CollectRewardEvent {
-            pos_index: arg2,
-            user: 0x1::signer::address_of(arg0),
-            pool_address: arg1,
-            amount: 0x1::coin::value<T2>(&v7),
-            index: arg3,
-        };
-        0x1::event::emit_event<CollectRewardEvent>(&mut v0.collect_reward_events, v8);
-        v7
-    }
+    // public fun collect_rewarder<T0, T1, T2>(
+    //     arg0: &signer,
+    //     arg1: address,
+    //     arg2: u64,
+    //     arg3: u8,
+    //     arg4: bool
+    // ): 0x1::coin::Coin<T2> acquires Pool {
+    //     check_position_authority<T0, T1>(arg0, arg1, arg2);
+    //     let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
+    //     assert_status<T0, T1>(v0);
+    //     update_rewarder<T0, T1>(v0);
+    //     let v1 = if (arg4) {
+    //         let (v2, v3) = get_position_tick_range_by_pool<T0, T1>(v0, arg2);
+    //         let v4 = 0x1::table::borrow_mut<u64, Position>(&mut v0.positions, arg2);
+    //         update_position_rewarder(v4, get_reward_in_tick_range<T0, T1>(v0, v2, v3));
+    //         v4
+    //     } else {
+    //         0x1::table::borrow_mut<u64, Position>(&mut v0.positions, arg2)
+    //     };
+    //     let v5 = 0x1::account::create_signer_with_capability(&v0.signer_cap);
+    //     let v6 = &mut 0x1::vector::borrow_mut<PositionRewarder>(&mut v1.rewarder_infos, (arg3 as u64)).amount_owed;
+    //     let v7 = 0x1::coin::withdraw<T2>(&v5, *v6);
+    //     *v6 = 0;
+    //     let v8 = CollectRewardEvent {
+    //         pos_index: arg2,
+    //         user: 0x1::signer::address_of(arg0),
+    //         pool_address: arg1,
+    //         amount: 0x1::coin::value<T2>(&v7),
+    //         index: arg3,
+    //     };
+    //     0x1::event::emit_event<CollectRewardEvent>(&mut v0.collect_reward_events, v8);
+    //     v7
+    // }
 
     // fun cross_tick_and_update_liquidity<T0, T1>(arg0: &mut Pool<T0, T1>, arg1: cetus::i64::I64, arg2: bool) {
     //     let v0 = 0x1::table::borrow_mut<cetus::i64::I64, Tick>(&mut arg0.ticks, arg1);
@@ -946,25 +946,25 @@ module cetus::pool {
         borrow_global<Pool<T0, T1>>(arg0).tick_spacing
     }
 
-    public fun initialize_rewarder<T0, T1, T2>(arg0: &signer, arg1: address, arg2: address, arg3: u64) acquires Pool {
-        cetus::config::assert_protocol_authority(arg0);
-        let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
-        assert_status<T0, T1>(v0);
-        let v1 = &mut v0.rewarder_infos;
-        assert!(0x1::vector::length<Rewarder>(v1) == arg3 && arg3 < 3, 23);
-        let v2 = Rewarder {
-            coin_type: 0x1::type_info::type_of<T2>(),
-            authority: arg2,
-            pending_authority: @0x0,
-            emissions_per_second: 0,
-            growth_global: 0,
-        };
-        0x1::vector::push_back<Rewarder>(v1, v2);
-        if (!0x1::coin::is_account_registered<T2>(arg1)) {
-            let v3 = 0x1::account::create_signer_with_capability(&v0.signer_cap);
-            0x1::coin::register<T2>(&v3);
-        };
-    }
+    // public fun initialize_rewarder<T0, T1, T2>(arg0: &signer, arg1: address, arg2: address, arg3: u64) acquires Pool {
+    //     cetus::config::assert_protocol_authority(arg0);
+    //     let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
+    //     assert_status<T0, T1>(v0);
+    //     let v1 = &mut v0.rewarder_infos;
+    //     assert!(0x1::vector::length<Rewarder>(v1) == arg3 && arg3 < 3, 23);
+    //     let v2 = Rewarder {
+    //         coin_type: 0x1::type_info::type_of<T2>(),
+    //         authority: arg2,
+    //         pending_authority: @0x0,
+    //         emissions_per_second: 0,
+    //         growth_global: 0,
+    //     };
+    //     0x1::vector::push_back<Rewarder>(v1, v2);
+    //     if (!0x1::coin::is_account_registered<T2>(arg1)) {
+    //         let v3 = 0x1::account::create_signer_with_capability(&v0.signer_cap);
+    //         0x1::coin::register<T2>(&v3);
+    //     };
+    // }
 
     fun new_empty_position(arg0: address, arg1: cetus::i64::I64, arg2: cetus::i64::I64, arg3: u64): Position {
         let v0 = PositionRewarder {
@@ -1257,27 +1257,27 @@ module cetus::pool {
         (v0, (cetus::i64::as_u64(cetus::i64::add(arg0, tick_max(arg1))) - v0 * arg1 * 1000) / arg1)
     }
 
-    public fun transfer_rewarder_authority<T0, T1>(
-        arg0: &signer,
-        arg1: address,
-        arg2: u8,
-        arg3: address
-    ) acquires Pool {
-        let v0 = 0x1::signer::address_of(arg0);
-        let v1 = borrow_global_mut<Pool<T0, T1>>(arg1);
-        assert_status<T0, T1>(v1);
-        assert!((arg2 as u64) < 0x1::vector::length<Rewarder>(&v1.rewarder_infos), 23);
-        let v2 = 0x1::vector::borrow_mut<Rewarder>(&mut v1.rewarder_infos, (arg2 as u64));
-        assert!(v2.authority == v0, 26);
-        v2.pending_authority = arg3;
-        let v3 = TransferRewardAuthEvent {
-            pool_address: arg1,
-            index: arg2,
-            old_authority: v0,
-            new_authority: arg3,
-        };
-        0x1::event::emit_event<TransferRewardAuthEvent>(&mut v1.transfer_reward_auth_events, v3);
-    }
+    // public fun transfer_rewarder_authority<T0, T1>(
+    //     arg0: &signer,
+    //     arg1: address,
+    //     arg2: u8,
+    //     arg3: address
+    // ) acquires Pool {
+    //     let v0 = 0x1::signer::address_of(arg0);
+    //     let v1 = borrow_global_mut<Pool<T0, T1>>(arg1);
+    //     assert_status<T0, T1>(v1);
+    //     assert!((arg2 as u64) < 0x1::vector::length<Rewarder>(&v1.rewarder_infos), 23);
+    //     let v2 = 0x1::vector::borrow_mut<Rewarder>(&mut v1.rewarder_infos, (arg2 as u64));
+    //     assert!(v2.authority == v0, 26);
+    //     v2.pending_authority = arg3;
+    //     let v3 = TransferRewardAuthEvent {
+    //         pool_address: arg1,
+    //         index: arg2,
+    //         old_authority: v0,
+    //         new_authority: arg3,
+    //     };
+    //     0x1::event::emit_event<TransferRewardAuthEvent>(&mut v1.transfer_reward_auth_events, v3);
+    // }
 
     public fun unpause<T0, T1>(arg0: &signer, arg1: address) acquires Pool {
         cetus::config::assert_protocol_status();
@@ -1285,39 +1285,39 @@ module cetus::pool {
         borrow_global_mut<Pool<T0, T1>>(arg1).is_pause = false;
     }
 
-    public fun update_emission<T0, T1, T2>(arg0: &signer, arg1: address, arg2: u8, arg3: u128) acquires Pool {
-        let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
-        assert_status<T0, T1>(v0);
-        update_rewarder<T0, T1>(v0);
-        assert!((arg2 as u64) < 0x1::vector::length<Rewarder>(&v0.rewarder_infos), 23);
-        let v1 = 0x1::vector::borrow_mut<Rewarder>(&mut v0.rewarder_infos, (arg2 as u64));
-        assert!(0x1::signer::address_of(arg0) == v1.authority, 26);
-        assert!(v1.coin_type == 0x1::type_info::type_of<T2>(), 25);
-        assert!(0x1::coin::balance<T2>(arg1) >= (cetus::full_math_u128::mul_shr(86400, arg3, 64) as u64), 24);
-        v1.emissions_per_second = arg3;
-        let v2 = UpdateEmissionEvent {
-            pool_address: arg1,
-            index: arg2,
-            emissions_per_second: arg3,
-        };
-        0x1::event::emit_event<UpdateEmissionEvent>(&mut v0.update_emission_events, v2);
-    }
+    // public fun update_emission<T0, T1, T2>(arg0: &signer, arg1: address, arg2: u8, arg3: u128) acquires Pool {
+    //     let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
+    //     assert_status<T0, T1>(v0);
+    //     update_rewarder<T0, T1>(v0);
+    //     assert!((arg2 as u64) < 0x1::vector::length<Rewarder>(&v0.rewarder_infos), 23);
+    //     let v1 = 0x1::vector::borrow_mut<Rewarder>(&mut v0.rewarder_infos, (arg2 as u64));
+    //     assert!(0x1::signer::address_of(arg0) == v1.authority, 26);
+    //     assert!(v1.coin_type == 0x1::type_info::type_of<T2>(), 25);
+    //     assert!(0x1::coin::balance<T2>(arg1) >= (cetus::full_math_u128::mul_shr(86400, arg3, 64) as u64), 24);
+    //     v1.emissions_per_second = arg3;
+    //     let v2 = UpdateEmissionEvent {
+    //         pool_address: arg1,
+    //         index: arg2,
+    //         emissions_per_second: arg3,
+    //     };
+    //     0x1::event::emit_event<UpdateEmissionEvent>(&mut v0.update_emission_events, v2);
+    // }
 
-    public fun update_fee_rate<T0, T1>(arg0: &signer, arg1: address, arg2: u64) acquires Pool {
-        if (arg2 > cetus::fee_tier::max_fee_rate()) {
-            abort 17
-        };
-        cetus::config::assert_protocol_authority(arg0);
-        let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
-        assert_status<T0, T1>(v0);
-        v0.fee_rate = arg2;
-        let v1 = UpdateFeeRateEvent {
-            pool_address: arg1,
-            old_fee_rate: v0.fee_rate,
-            new_fee_rate: arg2,
-        };
-        0x1::event::emit_event<UpdateFeeRateEvent>(&mut v0.update_fee_rate_events, v1);
-    }
+    // public fun update_fee_rate<T0, T1>(arg0: &signer, arg1: address, arg2: u64) acquires Pool {
+    //     if (arg2 > cetus::fee_tier::max_fee_rate()) {
+    //         abort 17
+    //     };
+    //     cetus::config::assert_protocol_authority(arg0);
+    //     let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
+    //     assert_status<T0, T1>(v0);
+    //     v0.fee_rate = arg2;
+    //     let v1 = UpdateFeeRateEvent {
+    //         pool_address: arg1,
+    //         old_fee_rate: v0.fee_rate,
+    //         new_fee_rate: arg2,
+    //     };
+    //     0x1::event::emit_event<UpdateFeeRateEvent>(&mut v0.update_fee_rate_events, v1);
+    // }
 
     fun update_pool_fee<T0, T1>(arg0: &mut Pool<T0, T1>, arg1: u64, arg2: u64, arg3: u64, arg4: bool): u64 {
         let v0 = cetus::full_math_u64::mul_div_ceil(arg1, arg3, 10000);
@@ -1349,14 +1349,14 @@ module cetus::pool {
         v2
     }
 
-    public fun update_pool_uri<T0, T1>(arg0: &signer, arg1: address, arg2: 0x1::string::String) acquires Pool {
-        assert!(!0x1::string::is_empty(&arg2), 41);
-        assert!(cetus::config::allow_set_position_nft_uri(arg0), 40);
-        let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
-        let v1 = 0x1::account::create_signer_with_capability(&v0.signer_cap);
-        cetus::position_nft::mutate_collection_uri(&v1, v0.collection_name, arg2);
-        v0.uri = arg2;
-    }
+    // public fun update_pool_uri<T0, T1>(arg0: &signer, arg1: address, arg2: 0x1::string::String) acquires Pool {
+    //     assert!(!0x1::string::is_empty(&arg2), 41);
+    //     assert!(cetus::config::allow_set_position_nft_uri(arg0), 40);
+    //     let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
+    //     let v1 = 0x1::account::create_signer_with_capability(&v0.signer_cap);
+    //     cetus::position_nft::mutate_collection_uri(&v1, v0.collection_name, arg2);
+    //     v0.uri = arg2;
+    // }
 
     fun update_position_fee(arg0: &mut Position, arg1: u128, arg2: u128) {
         let (v0, v1) = cetus::math_u64::overflowing_add(
@@ -1388,14 +1388,14 @@ module cetus::pool {
         update_position_rewarder(arg0, arg3);
     }
 
-    fun update_position_liquidity(arg0: &mut Position, arg1: u128, arg2: bool) {
-        if (arg1 == 0) {
+    fun update_position_liquidity(arg0: &mut Position, delta_liquidity: u128, arg2: bool) {
+        if (delta_liquidity == 0) {
             return
         };
         let (v0, v1) = if (arg2) {
-            cetus::math_u128::overflowing_add(arg0.liquidity, arg1)
+            cetus::math_u128::overflowing_add(arg0.liquidity, delta_liquidity)
         } else {
-            cetus::math_u128::overflowing_sub(arg0.liquidity, arg1)
+            cetus::math_u128::overflowing_sub(arg0.liquidity, delta_liquidity)
         };
         assert!(!v1, 36);
         arg0.liquidity = v0;
