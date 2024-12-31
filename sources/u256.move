@@ -110,8 +110,9 @@ module cetus::u256 {
         loop {
             if (gte(arg0, arg1)) {
                 let v5 = v3 / 64;
+                let value = get(&v0, (v5 as u8));
                 let v6 = &mut v0;
-                set(v6, (v5 as u8), get(&v0, (v5 as u8)) | 1 << ((v3 % 64) as u8));
+                set(v6, (v5 as u8), value | 1 << ((v3 % 64) as u8));
                 let v7 = arg0;
                 arg0 = sub(v7, arg1);
             };

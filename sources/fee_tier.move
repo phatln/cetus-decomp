@@ -1,9 +1,11 @@
 module cetus::fee_tier {
+    #[event]
     struct AddEvent has drop, store {
         tick_spacing: u64,
         fee_rate: u64,
     }
 
+    #[event]
     struct DeleteEvent has drop, store {
         tick_spacing: u64,
     }
@@ -15,11 +17,9 @@ module cetus::fee_tier {
 
     struct FeeTiers has key {
         fee_tiers: 0x1::simple_map::SimpleMap<u64, FeeTier>,
-        add_events: 0x1::event::EventHandle<AddEvent>,
-        update_events: 0x1::event::EventHandle<UpdateEvent>,
-        delete_events: 0x1::event::EventHandle<DeleteEvent>,
     }
 
+    #[event]
     struct UpdateEvent has drop, store {
         tick_spacing: u64,
         old_fee_rate: u64,
@@ -40,7 +40,7 @@ module cetus::fee_tier {
             tick_spacing : arg1,
             fee_rate     : arg2,
         };
-        0x1::event::emit_event<AddEvent>(&mut v0.add_events, v2);
+        0x1::event::emit(v2);
     }
 
     public fun delete_fee_tier(arg0: &signer, arg1: u64) acquires FeeTiers {
@@ -49,7 +49,7 @@ module cetus::fee_tier {
         assert!(0x1::simple_map::contains_key<u64, FeeTier>(&v0.fee_tiers, &arg1), 2);
         0x1::simple_map::remove<u64, FeeTier>(&mut v0.fee_tiers, &arg1);
         let v1 = DeleteEvent{tick_spacing: arg1};
-        0x1::event::emit_event<DeleteEvent>(&mut v0.delete_events, v1);
+        0x1::event::emit(v1);
     }
 
     public fun get_fee_rate(arg0: u64) : u64 acquires FeeTiers {
@@ -62,9 +62,6 @@ module cetus::fee_tier {
         cetus::config::assert_initialize_authority(arg0);
         let v0 = FeeTiers{
             fee_tiers     : 0x1::simple_map::create<u64, FeeTier>(),
-            add_events    : 0x1::account::new_event_handle<AddEvent>(arg0),
-            update_events : 0x1::account::new_event_handle<UpdateEvent>(arg0),
-            delete_events : 0x1::account::new_event_handle<DeleteEvent>(arg0),
         };
         move_to<FeeTiers>(arg0, v0);
     }
@@ -85,9 +82,7 @@ module cetus::fee_tier {
             old_fee_rate : v1.fee_rate,
             new_fee_rate : arg2,
         };
-        0x1::event::emit_event<UpdateEvent>(&mut v0.update_events, v2);
+        0x1::event::emit(v2);
     }
-
-    // decompiled from Move bytecode v6
 }
 

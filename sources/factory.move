@@ -1,4 +1,5 @@
 module cetus::factory {
+    #[event]
     struct CreatePoolEvent has drop, store {
         creator: address,
         pool_address: address,
@@ -20,7 +21,6 @@ module cetus::factory {
 
     struct Pools has key {
         data: 0x1::simple_map::SimpleMap<PoolId, address>,
-        create_pool_events: 0x1::event::EventHandle<CreatePoolEvent>,
         index: u64,
     }
 
@@ -50,7 +50,7 @@ module cetus::factory {
             coin_type_b              : 0x1::type_info::type_of<T1>(),
             tick_spacing             : arg1,
         };
-        0x1::event::emit_event<CreatePoolEvent>(&mut v8.create_pool_events, v9);
+        0x1::event::emit(v9);
         v7
     }
 
@@ -66,7 +66,6 @@ module cetus::factory {
     fun init_module(arg0: &signer) {
         let v0 = Pools{
             data               : 0x1::simple_map::create<PoolId, address>(),
-            create_pool_events : 0x1::account::new_event_handle<CreatePoolEvent>(arg0),
             index              : 0,
         };
         move_to<Pools>(arg0, v0);
@@ -75,7 +74,7 @@ module cetus::factory {
         move_to<PoolOwner>(arg0, v3);
         cetus::config::initialize(arg0);
         cetus::fee_tier::initialize(arg0);
-        cetus::partner::initialize(arg0);
+        // cetus::partner::initialize(arg0);
     }
 
     fun new_pool_id<T0, T1>(arg0: u64) : PoolId {

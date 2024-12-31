@@ -1,4 +1,5 @@
 module cetus::config {
+    #[event]
     struct AcceptAuthEvent has drop, store {
         old_auth: address,
         new_auth: address,
@@ -15,28 +16,27 @@ module cetus::config {
         pool_create_authority: address,
         protocol_fee_rate: u64,
         is_pause: bool,
-        transfer_auth_events: 0x1::event::EventHandle<TransferAuthEvent>,
-        accept_auth_events: 0x1::event::EventHandle<AcceptAuthEvent>,
-        update_claim_auth_events: 0x1::event::EventHandle<UpdateClaimAuthEvent>,
-        update_pool_create_events: 0x1::event::EventHandle<UpdatePoolCreateEvent>,
-        update_fee_rate_events: 0x1::event::EventHandle<UpdateFeeRateEvent>,
     }
 
+    #[event]
     struct TransferAuthEvent has drop, store {
         old_auth: address,
         new_auth: address,
     }
 
+    #[event]
     struct UpdateClaimAuthEvent has drop, store {
         old_auth: address,
         new_auth: address,
     }
 
+    #[event]
     struct UpdateFeeRateEvent has drop, store {
         old_fee_rate: u64,
         new_fee_rate: u64,
     }
 
+    #[event]
     struct UpdatePoolCreateEvent has drop, store {
         old_auth: address,
         new_auth: address,
@@ -63,7 +63,7 @@ module cetus::config {
             old_auth : v0.protocol_authority,
             new_auth : v0.protocol_authority,
         };
-        0x1::event::emit_event<AcceptAuthEvent>(&mut v0.accept_auth_events, v1);
+        0x1::event::emit(v1);
     }
 
     public fun allow_set_position_nft_uri(arg0: &signer) : bool acquires ClmmACL {
@@ -119,11 +119,6 @@ module cetus::config {
             pool_create_authority        : @0x0,
             protocol_fee_rate            : 2000,
             is_pause                     : false,
-            transfer_auth_events         : 0x1::account::new_event_handle<TransferAuthEvent>(arg0),
-            accept_auth_events           : 0x1::account::new_event_handle<AcceptAuthEvent>(arg0),
-            update_claim_auth_events     : 0x1::account::new_event_handle<UpdateClaimAuthEvent>(arg0),
-            update_pool_create_events    : 0x1::account::new_event_handle<UpdatePoolCreateEvent>(arg0),
-            update_fee_rate_events       : 0x1::account::new_event_handle<UpdateFeeRateEvent>(arg0),
         };
         move_to<GlobalConfig>(arg0, v1);
     }
@@ -141,7 +136,7 @@ module cetus::config {
             old_auth : v0.protocol_authority,
             new_auth : arg1,
         };
-        0x1::event::emit_event<TransferAuthEvent>(&mut v0.transfer_auth_events, v1);
+        0x1::event::emit(v1);
     }
 
     public fun unpause(arg0: &signer) acquires GlobalConfig {
@@ -157,7 +152,7 @@ module cetus::config {
             old_auth : v0.pool_create_authority,
             new_auth : v0.pool_create_authority,
         };
-        0x1::event::emit_event<UpdatePoolCreateEvent>(&mut v0.update_pool_create_events, v1);
+        0x1::event::emit(v1);
     }
 
     public fun update_protocol_fee_claim_authority(arg0: &signer, arg1: address) acquires GlobalConfig {
@@ -168,7 +163,7 @@ module cetus::config {
             old_auth : v0.protocol_fee_claim_authority,
             new_auth : v0.protocol_fee_claim_authority,
         };
-        0x1::event::emit_event<UpdateClaimAuthEvent>(&mut v0.update_claim_auth_events, v1);
+        0x1::event::emit(v1);
     }
 
     public fun update_protocol_fee_rate(arg0: &signer, arg1: u64) acquires GlobalConfig {
@@ -180,7 +175,7 @@ module cetus::config {
             old_fee_rate : v0.protocol_fee_rate,
             new_fee_rate : arg1,
         };
-        0x1::event::emit_event<UpdateFeeRateEvent>(&mut v0.update_fee_rate_events, v1);
+        0x1::event::emit(v1);
     }
 
     // decompiled from Move bytecode v6

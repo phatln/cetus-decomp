@@ -69,20 +69,20 @@ module cetus::partner {
         end_time: u64,
     }
 
-    public fun accept_receiver(arg0: &signer, arg1: 0x1::string::String) acquires Partners {
-        let v0 = 0x1::signer::address_of(arg0);
-        let v1 = borrow_global_mut<Partners>(@cetus);
-        assert!(0x1::table::contains<0x1::string::String, Partner>(&v1.data, arg1), 3);
-        let v2 = 0x1::table::borrow_mut<0x1::string::String, Partner>(&mut v1.data, arg1);
-        assert!(v0 == v2.metadata.pending_receiver, 4);
-        v2.metadata.receiver = v0;
-        v2.metadata.pending_receiver = @0x0;
-        let v3 = AcceptReceiverEvent{
-            name     : arg1,
-            receiver : v0,
-        };
-        0x1::event::emit_event<AcceptReceiverEvent>(&mut v1.accept_receiver_events, v3);
-    }
+    // public fun accept_receiver(arg0: &signer, arg1: 0x1::string::String) acquires Partners {
+    //     let v0 = 0x1::signer::address_of(arg0);
+    //     let v1 = borrow_global_mut<Partners>(@cetus);
+    //     assert!(0x1::table::contains<0x1::string::String, Partner>(&v1.data, arg1), 3);
+    //     let v2 = 0x1::table::borrow_mut<0x1::string::String, Partner>(&mut v1.data, arg1);
+    //     assert!(v0 == v2.metadata.pending_receiver, 4);
+    //     v2.metadata.receiver = v0;
+    //     v2.metadata.pending_receiver = @0x0;
+    //     let v3 = AcceptReceiverEvent{
+    //         name     : arg1,
+    //         receiver : v0,
+    //     };
+    //     0x1::event::emit_event<AcceptReceiverEvent>(&mut v1.accept_receiver_events, v3);
+    // }
 
     public fun claim_ref_fee<T0>(arg0: &signer, arg1: 0x1::string::String) acquires Partners {
         let v0 = borrow_global_mut<Partners>(@cetus);
@@ -189,51 +189,51 @@ module cetus::partner {
         0x1::event::emit_event<ReceiveRefFeeEvent>(&mut v0.receive_ref_fee_events, v4);
     }
 
-    public fun transfer_receiver(arg0: &signer, arg1: 0x1::string::String, arg2: address) acquires Partners {
-        let v0 = borrow_global_mut<Partners>(@cetus);
-        assert!(0x1::table::contains<0x1::string::String, Partner>(&v0.data, arg1), 3);
-        let v1 = 0x1::table::borrow_mut<0x1::string::String, Partner>(&mut v0.data, arg1);
-        assert!(0x1::signer::address_of(arg0) == v1.metadata.receiver, 4);
-        v1.metadata.pending_receiver = arg2;
-        let v2 = TransferReceiverEvent{
-            name         : arg1,
-            old_receiver : v1.metadata.receiver,
-            new_receiver : arg2,
-        };
-        0x1::event::emit_event<TransferReceiverEvent>(&mut v0.transfer_receiver_events, v2);
-    }
+    // public fun transfer_receiver(arg0: &signer, arg1: 0x1::string::String, arg2: address) acquires Partners {
+    //     let v0 = borrow_global_mut<Partners>(@cetus);
+    //     assert!(0x1::table::contains<0x1::string::String, Partner>(&v0.data, arg1), 3);
+    //     let v1 = 0x1::table::borrow_mut<0x1::string::String, Partner>(&mut v0.data, arg1);
+    //     assert!(0x1::signer::address_of(arg0) == v1.metadata.receiver, 4);
+    //     v1.metadata.pending_receiver = arg2;
+    //     let v2 = TransferReceiverEvent{
+    //         name         : arg1,
+    //         old_receiver : v1.metadata.receiver,
+    //         new_receiver : arg2,
+    //     };
+    //     0x1::event::emit_event<TransferReceiverEvent>(&mut v0.transfer_receiver_events, v2);
+    // }
 
-    public fun update_fee_rate(arg0: &signer, arg1: 0x1::string::String, arg2: u64) acquires Partners {
-        assert!(arg2 < 10000, 6);
-        cetus::config::assert_protocol_authority(arg0);
-        let v0 = borrow_global_mut<Partners>(@cetus);
-        assert!(0x1::table::contains<0x1::string::String, Partner>(&v0.data, arg1), 3);
-        let v1 = 0x1::table::borrow_mut<0x1::string::String, Partner>(&mut v0.data, arg1);
-        v1.metadata.fee_rate = arg2;
-        let v2 = UpdateFeeRateEvent{
-            name         : arg1,
-            old_fee_rate : v1.metadata.fee_rate,
-            new_fee_rate : arg2,
-        };
-        0x1::event::emit_event<UpdateFeeRateEvent>(&mut v0.update_fee_rate_events, v2);
-    }
+    // public fun update_fee_rate(arg0: &signer, arg1: 0x1::string::String, arg2: u64) acquires Partners {
+    //     assert!(arg2 < 10000, 6);
+    //     cetus::config::assert_protocol_authority(arg0);
+    //     let v0 = borrow_global_mut<Partners>(@cetus);
+    //     assert!(0x1::table::contains<0x1::string::String, Partner>(&v0.data, arg1), 3);
+    //     let v1 = 0x1::table::borrow_mut<0x1::string::String, Partner>(&mut v0.data, arg1);
+    //     v1.metadata.fee_rate = arg2;
+    //     let v2 = UpdateFeeRateEvent{
+    //         name         : arg1,
+    //         old_fee_rate : v1.metadata.fee_rate,
+    //         new_fee_rate : arg2,
+    //     };
+    //     0x1::event::emit_event<UpdateFeeRateEvent>(&mut v0.update_fee_rate_events, v2);
+    // }
 
-    public fun update_time(arg0: &signer, arg1: 0x1::string::String, arg2: u64, arg3: u64) acquires Partners {
-        assert!(arg3 > arg2, 5);
-        assert!(arg3 > 0x1::timestamp::now_seconds(), 5);
-        cetus::config::assert_protocol_authority(arg0);
-        let v0 = borrow_global_mut<Partners>(@cetus);
-        assert!(0x1::table::contains<0x1::string::String, Partner>(&v0.data, arg1), 3);
-        let v1 = 0x1::table::borrow_mut<0x1::string::String, Partner>(&mut v0.data, arg1);
-        v1.metadata.start_time = arg2;
-        v1.metadata.end_time = arg3;
-        let v2 = UpdateTimeEvent{
-            name       : arg1,
-            start_time : arg2,
-            end_time   : arg3,
-        };
-        0x1::event::emit_event<UpdateTimeEvent>(&mut v0.update_time_events, v2);
-    }
+    // public fun update_time(arg0: &signer, arg1: 0x1::string::String, arg2: u64, arg3: u64) acquires Partners {
+    //     assert!(arg3 > arg2, 5);
+    //     assert!(arg3 > 0x1::timestamp::now_seconds(), 5);
+    //     cetus::config::assert_protocol_authority(arg0);
+    //     let v0 = borrow_global_mut<Partners>(@cetus);
+    //     assert!(0x1::table::contains<0x1::string::String, Partner>(&v0.data, arg1), 3);
+    //     let v1 = 0x1::table::borrow_mut<0x1::string::String, Partner>(&mut v0.data, arg1);
+    //     v1.metadata.start_time = arg2;
+    //     v1.metadata.end_time = arg3;
+    //     let v2 = UpdateTimeEvent{
+    //         name       : arg1,
+    //         start_time : arg2,
+    //         end_time   : arg3,
+    //     };
+    //     0x1::event::emit_event<UpdateTimeEvent>(&mut v0.update_time_events, v2);
+    // }
 
     // decompiled from Move bytecode v6
 }

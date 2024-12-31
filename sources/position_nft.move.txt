@@ -43,9 +43,6 @@ module cetus::position_nft {
         0x3::token::direct_transfer_script(arg1, arg0, 0x1::signer::address_of(arg1), arg5, v0, 0, 1);
     }
 
-    public fun mutate_collection_uri(arg0: &signer, arg1: 0x1::string::String, arg2: 0x1::string::String) {
-    }
-
     public fun position_name(arg0: u64, arg1: u64) : 0x1::string::String {
         let v0 = 0x1::string::utf8(b"Cetus LP | Pool");
         0x1::string::append(&mut v0, cetus::utils::str(arg0));

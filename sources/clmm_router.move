@@ -122,7 +122,7 @@ module cetus::clmm_router {
                 tick_upper
             ))
         } else {
-            cetus::pool::check_position_authority<T0, T1>(signer, pool_addr, index);
+            // cetus::pool::check_position_authority<T0, T1>(signer, pool_addr, index);
             let (lower_index, upper_index) = cetus::pool::get_position_tick_range<T0, T1>(pool_addr, index);
             assert!(cetus::i64::eq(cetus::i64::from_u64(tick_lower), lower_index), 3);
             assert!(cetus::i64::eq(cetus::i64::from_u64(tick_upper), upper_index), 3);
@@ -233,7 +233,7 @@ module cetus::clmm_router {
                 upper_tick_index
             ))
         } else {
-            cetus::pool::check_position_authority<T0, T1>(signer, pool_addr, index);
+            // cetus::pool::check_position_authority<T0, T1>(signer, pool_addr, index);
             let (lower_index, upper_index) = cetus::pool::get_position_tick_range<T0, T1>(pool_addr, index);
             assert!(cetus::i64::eq(cetus::i64::from_u64(lower_tick_index), lower_index), 3);
             assert!(cetus::i64::eq(cetus::i64::from_u64(upper_tick_index), upper_index), 3);

@@ -110,10 +110,6 @@ module cetus::clmm_math {
         ((v1 >> 64) as u64)
     }
 
-    public fun get_delta_down_from_output(arg0: u128, arg1: u128, arg2: u128, arg3: bool): cetus::u256::U256 {
-        abort 7
-    }
-
     public fun get_delta_down_from_output_v2(arg0: u128, arg1: u128, arg2: u128, arg3: bool): u256 {
         let v0 = if (arg0 > arg1) {
             arg0 - arg1
@@ -132,10 +128,6 @@ module cetus::clmm_math {
             };
             cetus::math_u256::div_round(v2, cetus::full_math_u128::full_mul_v2(arg0, arg1), false)
         }
-    }
-
-    public fun get_delta_up_from_input(arg0: u128, arg1: u128, arg2: u128, arg3: bool): cetus::u256::U256 {
-        abort 7
     }
 
     public fun get_delta_up_from_input_v2(arg0: u128, arg1: u128, arg2: u128, arg3: bool): u256 {

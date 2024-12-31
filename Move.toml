@@ -1,5 +1,5 @@
 [package]
-name = "cetus-decomp"
+name = "cetus"
 version = "2.1.0"
 authors = []
 
@@ -7,7 +7,7 @@ authors = []
 cetus = "_"
 
 [dev-addresses]
-cetus = "0xe8c54367192c87f5173dc8dda21819519b604ac0b14ad8123a14fc8a36c051bc"
+cetus = "0xd285d39008b29c80f77079f86d8b60b5ca836014d5359d7282a80c239d4426c9"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-framework.git"

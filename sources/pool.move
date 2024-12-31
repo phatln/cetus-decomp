@@ -1,10 +1,12 @@
 module cetus::pool {
+    #[event]
     struct AcceptRewardAuthEvent has drop, store {
         pool_address: address,
         index: u8,
         authority: address,
     }
 
+    #[event]
     struct AddLiquidityEvent has drop, store {
         pool_address: address,
         tick_lower: cetus::i64::I64,
@@ -15,12 +17,14 @@ module cetus::pool {
         index: u64,
     }
 
+    #[event]
     struct AddLiquidityReceipt<phantom T0, phantom T1> {
         pool_address: address,
         amount_a: u64,
         amount_b: u64,
     }
 
+    #[event]
     struct CalculatedSwapResult has copy, drop, store {
         amount_in: u64,
         amount_out: u64,
@@ -31,12 +35,14 @@ module cetus::pool {
         step_results: vector<SwapStepResult>,
     }
 
+    #[event]
     struct ClosePositionEvent has drop, store {
         user: address,
         pool: address,
         index: u64,
     }
 
+    #[event]
     struct CollectFeeEvent has drop, store {
         index: u64,
         user: address,
@@ -45,12 +51,14 @@ module cetus::pool {
         amount_b: u64,
     }
 
+    #[event]
     struct CollectProtocolFeeEvent has drop, store {
         pool_address: address,
         amount_a: u64,
         amount_b: u64,
     }
 
+    #[event]
     struct CollectRewardEvent has drop, store {
         pos_index: u64,
         user: address,
@@ -59,6 +67,7 @@ module cetus::pool {
         index: u8,
     }
 
+    #[event]
     struct FlashSwapReceipt<phantom T0, phantom T1> {
         pool_address: address,
         a2b: bool,
@@ -67,6 +76,7 @@ module cetus::pool {
         ref_fee_amount: u64,
     }
 
+    #[event]
     struct OpenPositionEvent has drop, store {
         user: address,
         pool: address,
@@ -98,18 +108,6 @@ module cetus::pool {
         is_pause: bool,
         uri: 0x1::string::String,
         signer_cap: 0x1::account::SignerCapability,
-        open_position_events: 0x1::event::EventHandle<OpenPositionEvent>,
-        close_position_events: 0x1::event::EventHandle<ClosePositionEvent>,
-        add_liquidity_events: 0x1::event::EventHandle<AddLiquidityEvent>,
-        remove_liquidity_events: 0x1::event::EventHandle<RemoveLiquidityEvent>,
-        swap_events: 0x1::event::EventHandle<SwapEvent>,
-        collect_protocol_fee_events: 0x1::event::EventHandle<CollectProtocolFeeEvent>,
-        collect_fee_events: 0x1::event::EventHandle<CollectFeeEvent>,
-        update_fee_rate_events: 0x1::event::EventHandle<UpdateFeeRateEvent>,
-        update_emission_events: 0x1::event::EventHandle<UpdateEmissionEvent>,
-        transfer_reward_auth_events: 0x1::event::EventHandle<TransferRewardAuthEvent>,
-        accept_reward_auth_events: 0x1::event::EventHandle<AcceptRewardAuthEvent>,
-        collect_reward_events: 0x1::event::EventHandle<CollectRewardEvent>,
     }
 
     struct Position has copy, drop, store {
@@ -130,6 +128,7 @@ module cetus::pool {
         amount_owed: u64,
     }
 
+    #[event]
     struct RemoveLiquidityEvent has drop, store {
         pool_address: address,
         tick_lower: cetus::i64::I64,
@@ -148,6 +147,7 @@ module cetus::pool {
         growth_global: u128,
     }
 
+    #[event]
     struct SwapEvent has drop, store {
         atob: bool,
         pool_address: address,
@@ -188,6 +188,7 @@ module cetus::pool {
         rewarders_growth_outside: vector<u128>,
     }
 
+    #[event]
     struct TransferRewardAuthEvent has drop, store {
         pool_address: address,
         index: u8,
@@ -195,12 +196,14 @@ module cetus::pool {
         new_authority: address,
     }
 
+    #[event]
     struct UpdateEmissionEvent has drop, store {
         pool_address: address,
         index: u8,
         emissions_per_second: u128,
     }
 
+    #[event]
     struct UpdateFeeRateEvent has drop, store {
         pool_address: address,
         old_fee_rate: u64,
@@ -216,15 +219,15 @@ module cetus::pool {
         arg5: 0x1::account::SignerCapability
     ): 0x1::string::String {
         assert!(0x1::type_info::type_of<T0>() != 0x1::type_info::type_of<T1>(), 37);
-        let v0 = cetus::position_nft::create_collection<T0, T1>(
-            arg0,
-            arg1,
-            0x1::string::utf8(b"Cetus Liquidity Position"),
-            arg4
-        );
+        // let v0 = cetus::position_nft::create_collection<T0, T1>(
+        //     arg0,
+        //     arg1,
+        //     0x1::string::utf8(b"Cetus Liquidity Position"),
+        //     arg4
+        // );
         let v1 = Pool<T0, T1> {
             index: arg3,
-            collection_name: v0,
+            collection_name: 0x1::string::utf8(b"Pool"),
             coin_a: 0x1::coin::zero<T0>(),
             coin_b: 0x1::coin::zero<T1>(),
             tick_spacing: arg1,
@@ -245,23 +248,12 @@ module cetus::pool {
             is_pause: false,
             uri: arg4,
             signer_cap: arg5,
-            open_position_events: 0x1::account::new_event_handle<OpenPositionEvent>(arg0),
-            close_position_events: 0x1::account::new_event_handle<ClosePositionEvent>(arg0),
-            add_liquidity_events: 0x1::account::new_event_handle<AddLiquidityEvent>(arg0),
-            remove_liquidity_events: 0x1::account::new_event_handle<RemoveLiquidityEvent>(arg0),
-            swap_events: 0x1::account::new_event_handle<SwapEvent>(arg0),
-            collect_protocol_fee_events: 0x1::account::new_event_handle<CollectProtocolFeeEvent>(arg0),
-            collect_fee_events: 0x1::account::new_event_handle<CollectFeeEvent>(arg0),
-            update_fee_rate_events: 0x1::account::new_event_handle<UpdateFeeRateEvent>(arg0),
-            update_emission_events: 0x1::account::new_event_handle<UpdateEmissionEvent>(arg0),
-            transfer_reward_auth_events: 0x1::account::new_event_handle<TransferRewardAuthEvent>(arg0),
-            accept_reward_auth_events: 0x1::account::new_event_handle<AcceptRewardAuthEvent>(arg0),
-            collect_reward_events: 0x1::account::new_event_handle<CollectRewardEvent>(arg0),
         };
         move_to<Pool<T0, T1>>(arg0, v1);
         0x3::token::initialize_token_store(arg0);
-        cetus::position_nft::mint(arg0, arg0, arg3, 0, arg4, v0);
-        v0
+        // cetus::position_nft::mint(arg0, arg0, arg3, 0, arg4, v0);
+        // v0
+        0x1::string::utf8(b"PoolCreated")
     }
 
     // public fun accept_rewarder_authority<T0, T1>(arg0: &signer, arg1: address, arg2: u8) acquires Pool {
@@ -317,9 +309,14 @@ module cetus::pool {
         update_rewarder<T0, T1>(pool);
         let (lower_index, upper_index) = get_position_tick_range_by_pool<T0, T1>(pool, pos_index);
         let (fee_growth_a, fee_growth_b) = get_fee_in_tick_range<T0, T1>(pool, lower_index, upper_index);
+        let reward = get_reward_in_tick_range<T0, T1>(pool, lower_index, upper_index);
         let position = 0x1::table::borrow_mut<u64, Position>(&mut pool.positions, pos_index);
         update_position_fee_and_reward(
-            position, fee_growth_a, fee_growth_b, get_reward_in_tick_range<T0, T1>(pool, lower_index, upper_index));
+            position,
+            fee_growth_a,
+            fee_growth_b,
+            reward,
+        );
         let (amount_a, amount_b, delta_liquidity) = if (is_fixed_amount) {
             let (v9, v10, v11) = cetus::clmm_math::get_liquidity_from_amount(
                 lower_index, upper_index, pool.current_tick_index, pool.current_sqrt_price, amount, fix_amount_a);
@@ -482,26 +479,26 @@ module cetus::pool {
     //     v7
     // }
 
-    public fun check_position_authority<T0, T1>(arg0: &signer, arg1: address, arg2: u64) acquires Pool {
-        let v0 = borrow_global<Pool<T0, T1>>(arg1);
-        if (!0x1::table::contains<u64, Position>(&v0.positions, arg2)) {
-            abort 29
-        };
-        assert!(
-            0x3::token::balance_of(
-                0x1::signer::address_of(arg0),
-                0x3::token::create_token_id(
-                    0x3::token::create_token_data_id(
-                        0x1::account::get_signer_capability_address(&v0.signer_cap),
-                        v0.collection_name,
-                        cetus::position_nft::position_name(v0.index, arg2)
-                    ),
-                    0
-                )
-            ) == 1,
-            28
-        );
-    }
+    // public fun check_position_authority<T0, T1>(arg0: &signer, arg1: address, arg2: u64) acquires Pool {
+    //     let v0 = borrow_global<Pool<T0, T1>>(arg1);
+    //     if (!0x1::table::contains<u64, Position>(&v0.positions, arg2)) {
+    //         abort 29
+    //     };
+    //     assert!(
+    //         0x3::token::balance_of(
+    //             0x1::signer::address_of(arg0),
+    //             0x3::token::create_token_id(
+    //                 0x3::token::create_token_data_id(
+    //                     0x1::account::get_signer_capability_address(&v0.signer_cap),
+    //                     v0.collection_name,
+    //                     cetus::position_nft::position_name(v0.index, arg2)
+    //                 ),
+    //                 0
+    //             )
+    //         ) == 1,
+    //         28
+    //     );
+    // }
 
     fun check_sub_remainer_amount(arg0: u64, arg1: u64): u64 {
         let (v0, v1) = cetus::math_u64::overflowing_sub(arg0, arg1);
@@ -512,7 +509,7 @@ module cetus::pool {
     }
 
     public fun checked_close_position<T0, T1>(arg0: &signer, arg1: address, arg2: u64): bool acquires Pool {
-        check_position_authority<T0, T1>(arg0, arg1, arg2);
+        // check_position_authority<T0, T1>(arg0, arg1, arg2);
         let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
         assert_status<T0, T1>(v0);
         let v1 = 0x1::table::borrow<u64, Position>(&v0.positions, arg2);
@@ -532,13 +529,13 @@ module cetus::pool {
         0x1::table::remove<u64, Position>(&mut v0.positions, arg2);
         let v3 = 0x1::account::create_signer_with_capability(&v0.signer_cap);
         let v4 = 0x1::signer::address_of(arg0);
-        cetus::position_nft::burn(&v3, v4, v0.collection_name, v0.index, arg2);
+        // cetus::position_nft::burn(&v3, v4, v0.collection_name, v0.index, arg2);
         let v5 = ClosePositionEvent {
             user: v4,
             pool: arg1,
             index: arg2,
         };
-        0x1::event::emit_event<ClosePositionEvent>(&mut v0.close_position_events, v5);
+        0x1::event::emit(v5);
         true
     }
 
@@ -1015,7 +1012,7 @@ module cetus::pool {
             new_empty_position(arg1, arg2, arg3, v0.position_index)
         );
         let v1 = 0x1::account::create_signer_with_capability(&v0.signer_cap);
-        cetus::position_nft::mint(arg0, &v1, v0.index, v0.position_index, v0.uri, v0.collection_name);
+        // cetus::position_nft::mint(arg0, &v1, v0.index, v0.position_index, v0.uri, v0.collection_name);
         let v2 = OpenPositionEvent {
             user: 0x1::signer::address_of(arg0),
             pool: arg1,
@@ -1023,7 +1020,7 @@ module cetus::pool {
             tick_upper: arg3,
             index: v0.position_index,
         };
-        0x1::event::emit_event<OpenPositionEvent>(&mut v0.open_position_events, v2);
+        0x1::event::emit(v2);
         v0.position_index = v0.position_index + 1;
         v0.position_index
     }
@@ -1041,14 +1038,15 @@ module cetus::pool {
         arg3: u64
     ): (0x1::coin::Coin<T0>, 0x1::coin::Coin<T1>) acquires Pool {
         assert!(arg2 != 0, 11);
-        check_position_authority<T0, T1>(arg0, arg1, arg3);
+        // check_position_authority<T0, T1>(arg0, arg1, arg3);
         let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
         assert_status<T0, T1>(v0);
         update_rewarder<T0, T1>(v0);
         let (v1, v2) = get_position_tick_range_by_pool<T0, T1>(v0, arg3);
         let (v3, v4) = get_fee_in_tick_range<T0, T1>(v0, v1, v2);
+        let reward = get_reward_in_tick_range<T0, T1>(v0, v1, v2);
         let v5 = 0x1::table::borrow_mut<u64, Position>(&mut v0.positions, arg3);
-        update_position_fee_and_reward(v5, v3, v4, get_reward_in_tick_range<T0, T1>(v0, v1, v2));
+        update_position_fee_and_reward(v5, v3, v4, reward);
         update_position_liquidity(v5, arg2, false);
         upsert_tick_by_liquidity<T0, T1>(v0, v1, arg2, false, false);
         upsert_tick_by_liquidity<T0, T1>(v0, v2, arg2, false, true);
@@ -1078,7 +1076,7 @@ module cetus::pool {
             amount_b: v7,
             index: arg3,
         };
-        0x1::event::emit_event<RemoveLiquidityEvent>(&mut v0.remove_liquidity_events, v10);
+        0x1::event::emit(v10);
         (0x1::coin::extract<T0>(&mut v0.coin_a, v6), 0x1::coin::extract<T1>(&mut v0.coin_b, v7))
     }
 
@@ -1111,39 +1109,35 @@ module cetus::pool {
         0x1::coin::merge<T1>(&mut v3.coin_b, arg1);
     }
 
-    public fun repay_flash_swap<T0, T1>(
-        arg0: 0x1::coin::Coin<T0>,
-        arg1: 0x1::coin::Coin<T1>,
-        arg2: FlashSwapReceipt<T0, T1>
-    ) acquires Pool {
-        let FlashSwapReceipt<T0, T1> {
-            pool_address: v0,
-            a2b: v1,
-            partner_name: v2,
-            pay_amount: v3,
-            ref_fee_amount: v4,
-        } = arg2;
-        let v5 = borrow_global_mut<Pool<T0, T1>>(v0);
-        if (v1) {
-            assert!(0x1::coin::value<T0>(&arg0) == v3, 6);
-            if (v4 > 0) {
-                cetus::partner::receive_ref_fee<T0>(v2, 0x1::coin::extract<T0>(&mut arg0, v4));
-            };
-            0x1::coin::merge<T0>(&mut v5.coin_a, arg0);
-            0x1::coin::destroy_zero<T1>(arg1);
-        } else {
-            assert!(0x1::coin::value<T1>(&arg1) == v3, 6);
-            if (v4 > 0) {
-                cetus::partner::receive_ref_fee<T1>(v2, 0x1::coin::extract<T1>(&mut arg1, v4));
-            };
-            0x1::coin::merge<T1>(&mut v5.coin_b, arg1);
-            0x1::coin::destroy_zero<T0>(arg0);
-        };
-    }
-
-    public fun reset_init_price<T0, T1>(arg0: address, arg1: u128) {
-        abort 39
-    }
+    // public fun repay_flash_swap<T0, T1>(
+    //     arg0: 0x1::coin::Coin<T0>,
+    //     arg1: 0x1::coin::Coin<T1>,
+    //     arg2: FlashSwapReceipt<T0, T1>
+    // ) acquires Pool {
+    //     let FlashSwapReceipt<T0, T1> {
+    //         pool_address: v0,
+    //         a2b: v1,
+    //         partner_name: v2,
+    //         pay_amount: v3,
+    //         ref_fee_amount: v4,
+    //     } = arg2;
+    //     let v5 = borrow_global_mut<Pool<T0, T1>>(v0);
+    //     if (v1) {
+    //         assert!(0x1::coin::value<T0>(&arg0) == v3, 6);
+    //         if (v4 > 0) {
+    //             cetus::partner::receive_ref_fee<T0>(v2, 0x1::coin::extract<T0>(&mut arg0, v4));
+    //         };
+    //         0x1::coin::merge<T0>(&mut v5.coin_a, arg0);
+    //         0x1::coin::destroy_zero<T1>(arg1);
+    //     } else {
+    //         assert!(0x1::coin::value<T1>(&arg1) == v3, 6);
+    //         if (v4 > 0) {
+    //             cetus::partner::receive_ref_fee<T1>(v2, 0x1::coin::extract<T1>(&mut arg1, v4));
+    //         };
+    //         0x1::coin::merge<T1>(&mut v5.coin_b, arg1);
+    //         0x1::coin::destroy_zero<T0>(arg0);
+    //     };
+    // }
 
     public fun reset_init_price_v2<T0, T1>(arg0: &signer, arg1: address, arg2: u128) acquires Pool {
         cetus::config::assert_reset_init_price_authority(arg0);
