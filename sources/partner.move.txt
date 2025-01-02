@@ -1,4 +1,4 @@
-module cetus::partner {
+module tap::partner {
     struct AcceptReceiverEvent has drop, store {
         name: 0x1::string::String,
         receiver: address,
@@ -71,7 +71,7 @@ module cetus::partner {
 
     // public fun accept_receiver(arg0: &signer, arg1: 0x1::string::String) acquires Partners {
     //     let v0 = 0x1::signer::address_of(arg0);
-    //     let v1 = borrow_global_mut<Partners>(@cetus);
+    //     let v1 = borrow_global_mut<Partners>(@tap);
     //     assert!(0x1::table::contains<0x1::string::String, Partner>(&v1.data, arg1), 3);
     //     let v2 = 0x1::table::borrow_mut<0x1::string::String, Partner>(&mut v1.data, arg1);
     //     assert!(v0 == v2.metadata.pending_receiver, 4);
@@ -85,7 +85,7 @@ module cetus::partner {
     // }
 
     public fun claim_ref_fee<T0>(arg0: &signer, arg1: 0x1::string::String) acquires Partners {
-        let v0 = borrow_global_mut<Partners>(@cetus);
+        let v0 = borrow_global_mut<Partners>(@tap);
         assert!(0x1::table::contains<0x1::string::String, Partner>(&v0.data, arg1), 3);
         let v1 = 0x1::table::borrow<0x1::string::String, Partner>(&v0.data, arg1);
         assert!(0x1::signer::address_of(arg0) == v1.metadata.receiver, 4);
@@ -109,8 +109,8 @@ module cetus::partner {
         assert!(arg5 > 0x1::timestamp::now_seconds(), 5);
         assert!(arg2 < 10000, 6);
         assert!(!0x1::string::is_empty(&arg1), 7);
-        cetus::config::assert_protocol_authority(arg0);
-        let v0 = borrow_global_mut<Partners>(@cetus);
+        tap::config::assert_protocol_authority(arg0);
+        let v0 = borrow_global_mut<Partners>(@tap);
         assert!(!0x1::table::contains<0x1::string::String, Partner>(&v0.data, arg1), 2);
         let (v1, v2) = 0x1::account::create_resource_account(arg0, *0x1::string::bytes(&arg1));
         let v3 = v1;
@@ -140,7 +140,7 @@ module cetus::partner {
     }
 
     public fun get_ref_fee_rate(arg0: 0x1::string::String) : u64 acquires Partners {
-        let v0 = &borrow_global<Partners>(@cetus).data;
+        let v0 = &borrow_global<Partners>(@tap).data;
         if (!0x1::table::contains<0x1::string::String, Partner>(v0, arg0)) {
             return 0
         };
@@ -153,7 +153,7 @@ module cetus::partner {
     }
 
     public fun initialize(arg0: &signer) {
-        cetus::config::assert_initialize_authority(arg0);
+        tap::config::assert_initialize_authority(arg0);
         let v0 = Partners{
             data                     : 0x1::table::new<0x1::string::String, Partner>(),
             create_events            : 0x1::account::new_event_handle<CreateEvent>(arg0),
@@ -172,7 +172,7 @@ module cetus::partner {
     }
 
     public fun receive_ref_fee<T0>(arg0: 0x1::string::String, arg1: 0x1::coin::Coin<T0>) acquires Partners {
-        let v0 = borrow_global_mut<Partners>(@cetus);
+        let v0 = borrow_global_mut<Partners>(@tap);
         assert!(0x1::table::contains<0x1::string::String, Partner>(&v0.data, arg0), 3);
         let v1 = 0x1::table::borrow<0x1::string::String, Partner>(&v0.data, arg0);
         if (!0x1::coin::is_account_registered<T0>(v1.metadata.partner_address)) {
@@ -190,7 +190,7 @@ module cetus::partner {
     }
 
     // public fun transfer_receiver(arg0: &signer, arg1: 0x1::string::String, arg2: address) acquires Partners {
-    //     let v0 = borrow_global_mut<Partners>(@cetus);
+    //     let v0 = borrow_global_mut<Partners>(@tap);
     //     assert!(0x1::table::contains<0x1::string::String, Partner>(&v0.data, arg1), 3);
     //     let v1 = 0x1::table::borrow_mut<0x1::string::String, Partner>(&mut v0.data, arg1);
     //     assert!(0x1::signer::address_of(arg0) == v1.metadata.receiver, 4);
@@ -205,8 +205,8 @@ module cetus::partner {
 
     // public fun update_fee_rate(arg0: &signer, arg1: 0x1::string::String, arg2: u64) acquires Partners {
     //     assert!(arg2 < 10000, 6);
-    //     cetus::config::assert_protocol_authority(arg0);
-    //     let v0 = borrow_global_mut<Partners>(@cetus);
+    //     tap::config::assert_protocol_authority(arg0);
+    //     let v0 = borrow_global_mut<Partners>(@tap);
     //     assert!(0x1::table::contains<0x1::string::String, Partner>(&v0.data, arg1), 3);
     //     let v1 = 0x1::table::borrow_mut<0x1::string::String, Partner>(&mut v0.data, arg1);
     //     v1.metadata.fee_rate = arg2;
@@ -221,8 +221,8 @@ module cetus::partner {
     // public fun update_time(arg0: &signer, arg1: 0x1::string::String, arg2: u64, arg3: u64) acquires Partners {
     //     assert!(arg3 > arg2, 5);
     //     assert!(arg3 > 0x1::timestamp::now_seconds(), 5);
-    //     cetus::config::assert_protocol_authority(arg0);
-    //     let v0 = borrow_global_mut<Partners>(@cetus);
+    //     tap::config::assert_protocol_authority(arg0);
+    //     let v0 = borrow_global_mut<Partners>(@tap);
     //     assert!(0x1::table::contains<0x1::string::String, Partner>(&v0.data, arg1), 3);
     //     let v1 = 0x1::table::borrow_mut<0x1::string::String, Partner>(&mut v0.data, arg1);
     //     v1.metadata.start_time = arg2;

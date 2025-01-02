@@ -1,4 +1,4 @@
-module cetus::pool {
+module tap::pool {
     #[event]
     struct AcceptRewardAuthEvent has drop, store {
         pool_address: address,
@@ -9,8 +9,8 @@ module cetus::pool {
     #[event]
     struct AddLiquidityEvent has drop, store {
         pool_address: address,
-        tick_lower: cetus::i64::I64,
-        tick_upper: cetus::i64::I64,
+        tick_lower: integer_mate::i64::I64,
+        tick_upper: integer_mate::i64::I64,
         liquidity: u128,
         amount_a: u64,
         amount_b: u64,
@@ -80,8 +80,8 @@ module cetus::pool {
     struct OpenPositionEvent has drop, store {
         user: address,
         pool: address,
-        tick_lower: cetus::i64::I64,
-        tick_upper: cetus::i64::I64,
+        tick_lower: integer_mate::i64::I64,
+        tick_upper: integer_mate::i64::I64,
         index: u64,
     }
 
@@ -94,13 +94,13 @@ module cetus::pool {
         fee_rate: u64,
         liquidity: u128,
         current_sqrt_price: u128,
-        current_tick_index: cetus::i64::I64,
+        current_tick_index: integer_mate::i64::I64,
         fee_growth_global_a: u128,
         fee_growth_global_b: u128,
         fee_protocol_coin_a: u64,
         fee_protocol_coin_b: u64,
         tick_indexes: 0x1::table::Table<u64, 0x1::bit_vector::BitVector>,
-        ticks: 0x1::table::Table<cetus::i64::I64, Tick>,
+        ticks: 0x1::table::Table<integer_mate::i64::I64, Tick>,
         rewarder_infos: vector<Rewarder>,
         rewarder_last_updated_time: u64,
         positions: 0x1::table::Table<u64, Position>,
@@ -114,8 +114,8 @@ module cetus::pool {
         pool: address,
         index: u64,
         liquidity: u128,
-        tick_lower_index: cetus::i64::I64,
-        tick_upper_index: cetus::i64::I64,
+        tick_lower_index: integer_mate::i64::I64,
+        tick_upper_index: integer_mate::i64::I64,
         fee_growth_inside_a: u128,
         fee_owed_a: u64,
         fee_growth_inside_b: u128,
@@ -131,8 +131,8 @@ module cetus::pool {
     #[event]
     struct RemoveLiquidityEvent has drop, store {
         pool_address: address,
-        tick_lower: cetus::i64::I64,
-        tick_upper: cetus::i64::I64,
+        tick_lower: integer_mate::i64::I64,
+        tick_upper: integer_mate::i64::I64,
         liquidity: u128,
         amount_a: u64,
         amount_b: u64,
@@ -179,9 +179,9 @@ module cetus::pool {
     }
 
     struct Tick has copy, drop, store {
-        index: cetus::i64::I64,
+        index: integer_mate::i64::I64,
         sqrt_price: u128,
-        liquidity_net: cetus::i128::I128,
+        liquidity_net: integer_mate::i128::I128,
         liquidity_gross: u128,
         fee_growth_outside_a: u128,
         fee_growth_outside_b: u128,
@@ -219,7 +219,7 @@ module cetus::pool {
         arg5: 0x1::account::SignerCapability
     ): 0x1::string::String {
         assert!(0x1::type_info::type_of<T0>() != 0x1::type_info::type_of<T1>(), 37);
-        // let v0 = cetus::position_nft::create_collection<T0, T1>(
+        // let v0 = tap::position_nft::create_collection<T0, T1>(
         //     arg0,
         //     arg1,
         //     0x1::string::utf8(b"Cetus Liquidity Position"),
@@ -231,16 +231,16 @@ module cetus::pool {
             coin_a: 0x1::coin::zero<T0>(),
             coin_b: 0x1::coin::zero<T1>(),
             tick_spacing: arg1,
-            fee_rate: cetus::fee_tier::get_fee_rate(arg1),
+            fee_rate: tap::fee_tier::get_fee_rate(arg1),
             liquidity: 0,
             current_sqrt_price: arg2,
-            current_tick_index: cetus::tick_math::get_tick_at_sqrt_price(arg2),
+            current_tick_index: tap::tick_math::get_tick_at_sqrt_price(arg2),
             fee_growth_global_a: 0,
             fee_growth_global_b: 0,
             fee_protocol_coin_a: 0,
             fee_protocol_coin_b: 0,
             tick_indexes: 0x1::table::new<u64, 0x1::bit_vector::BitVector>(),
-            ticks: 0x1::table::new<cetus::i64::I64, Tick>(),
+            ticks: 0x1::table::new<integer_mate::i64::I64, Tick>(),
             rewarder_infos: 0x1::vector::empty<Rewarder>(),
             rewarder_last_updated_time: 0,
             positions: 0x1::table::new<u64, Position>(),
@@ -251,7 +251,7 @@ module cetus::pool {
         };
         move_to<Pool<T0, T1>>(arg0, v1);
         0x3::token::initialize_token_store(arg0);
-        // cetus::position_nft::mint(arg0, arg0, arg3, 0, arg4, v0);
+        // tap::position_nft::mint(arg0, arg0, arg3, 0, arg4, v0);
         // v0
         0x1::string::utf8(b"PoolCreated")
     }
@@ -318,11 +318,11 @@ module cetus::pool {
             reward,
         );
         let (amount_a, amount_b, delta_liquidity) = if (is_fixed_amount) {
-            let (v9, v10, v11) = cetus::clmm_math::get_liquidity_from_amount(
+            let (v9, v10, v11) = tap::clmm_math::get_liquidity_from_amount(
                 lower_index, upper_index, pool.current_tick_index, pool.current_sqrt_price, amount, fix_amount_a);
             (v10, v11, v9)
         } else {
-            let (v12, v13) = cetus::clmm_math::get_amount_by_liquidity(lower_index,
+            let (v12, v13) = tap::clmm_math::get_amount_by_liquidity(lower_index,
                 upper_index, pool.current_tick_index, pool.current_sqrt_price,
                 delta_liquidity, true);
             (v12, v13, delta_liquidity)
@@ -330,11 +330,11 @@ module cetus::pool {
         update_position_liquidity(position, delta_liquidity, true);
         upsert_tick_by_liquidity<T0, T1>(pool, lower_index, delta_liquidity, true, false);
         upsert_tick_by_liquidity<T0, T1>(pool, upper_index, delta_liquidity, true, true);
-        let (new_liquidity, overflow) = if (cetus::i64::gte(pool.current_tick_index, lower_index) && cetus::i64::lt(
+        let (new_liquidity, overflow) = if (integer_mate::i64::gte(pool.current_tick_index, lower_index) && integer_mate::i64::lt(
             pool.current_tick_index,
             upper_index
         )) {
-            cetus::math_u128::overflowing_add(pool.liquidity, delta_liquidity)
+            integer_mate::math_u128::overflowing_add(pool.liquidity, delta_liquidity)
         } else {
             (pool.liquidity, false)
         };
@@ -358,7 +358,7 @@ module cetus::pool {
     }
 
     fun assert_status<T0, T1>(arg0: &Pool<T0, T1>) {
-        cetus::config::assert_protocol_status();
+        tap::config::assert_protocol_status();
         if (arg0.is_pause) {
             abort 32
         };
@@ -366,31 +366,31 @@ module cetus::pool {
 
     fun borrow_mut_tick_with_default(
         arg0: &mut 0x1::table::Table<u64, 0x1::bit_vector::BitVector>,
-        arg1: &mut 0x1::table::Table<cetus::i64::I64, Tick>,
+        arg1: &mut 0x1::table::Table<integer_mate::i64::I64, Tick>,
         arg2: u64,
-        arg3: cetus::i64::I64
+        arg3: integer_mate::i64::I64
     ): &mut Tick {
         let (v0, v1) = tick_position(arg3, arg2);
         if (!0x1::table::contains<u64, 0x1::bit_vector::BitVector>(arg0, v0)) {
             0x1::table::add<u64, 0x1::bit_vector::BitVector>(arg0, v0, 0x1::bit_vector::new(1000));
         };
         0x1::bit_vector::set(0x1::table::borrow_mut<u64, 0x1::bit_vector::BitVector>(arg0, v0), v1);
-        if (!0x1::table::contains<cetus::i64::I64, Tick>(arg1, arg3)) {
-            0x1::table::borrow_mut_with_default<cetus::i64::I64, Tick>(arg1, arg3, default_tick(arg3))
+        if (!0x1::table::contains<integer_mate::i64::I64, Tick>(arg1, arg3)) {
+            0x1::table::borrow_mut_with_default<integer_mate::i64::I64, Tick>(arg1, arg3, default_tick(arg3))
         } else {
-            0x1::table::borrow_mut<cetus::i64::I64, Tick>(arg1, arg3)
+            0x1::table::borrow_mut<integer_mate::i64::I64, Tick>(arg1, arg3)
         }
     }
 
-    fun borrow_tick<T0, T1>(pool: &Pool<T0, T1>, arg1: cetus::i64::I64): 0x1::option::Option<Tick> {
+    fun borrow_tick<T0, T1>(pool: &Pool<T0, T1>, arg1: integer_mate::i64::I64): 0x1::option::Option<Tick> {
         let (v0, _) = tick_position(arg1, pool.tick_spacing);
         if (!0x1::table::contains<u64, 0x1::bit_vector::BitVector>(&pool.tick_indexes, v0)) {
             return 0x1::option::none<Tick>()
         };
-        if (!0x1::table::contains<cetus::i64::I64, Tick>(&pool.ticks, arg1)) {
+        if (!0x1::table::contains<integer_mate::i64::I64, Tick>(&pool.ticks, arg1)) {
             return 0x1::option::none<Tick>()
         };
-        0x1::option::some<Tick>(*0x1::table::borrow<cetus::i64::I64, Tick>(&pool.ticks, arg1))
+        0x1::option::some<Tick>(*0x1::table::borrow<integer_mate::i64::I64, Tick>(&pool.ticks, arg1))
     }
 
     // public fun calculate_swap_result<T0, T1>(arg0: address, arg1: bool, arg2: bool, arg3: u64) : CalculatedSwapResult acquires Pool {
@@ -411,7 +411,7 @@ module cetus::pool {
     //         step_results     : 0x1::vector::empty<SwapStepResult>(),
     //     };
     //     while (v4 > 0) {
-    //         if (cetus::i64::gt(v5, v6) || cetus::i64::lt(v5, tick_min(v0.tick_spacing))) {
+    //         if (integer_mate::i64::gt(v5, v6) || integer_mate::i64::lt(v5, tick_min(v0.tick_spacing))) {
     //             v7.is_exceed = true;
     //             break
     //         };
@@ -422,7 +422,7 @@ module cetus::pool {
     //         };
     //         let v9 = 0x1::option::destroy_some<Tick>(v8);
     //         let v10 = v9.sqrt_price;
-    //         let (v11, v12, v13, v14) = cetus::clmm_math::compute_swap_step(v1, v10, v2, v4, v0.fee_rate, arg1, arg2);
+    //         let (v11, v12, v13, v14) = tap::clmm_math::compute_swap_step(v1, v10, v2, v4, v0.fee_rate, arg1, arg2);
     //         if (v11 != 0 || v14 != 0) {
     //             if (arg2) {
     //                 let v15 = check_sub_remainer_amount(v4, v11);
@@ -446,18 +446,18 @@ module cetus::pool {
     //         if (v13 == v9.sqrt_price) {
     //             v1 = v9.sqrt_price;
     //             let v18 = if (arg1) {
-    //                 cetus::i128::neg(v9.liquidity_net)
+    //                 integer_mate::i128::neg(v9.liquidity_net)
     //             } else {
     //                 v9.liquidity_net
     //             };
-    //             if (!cetus::i128::is_neg(v18)) {
-    //                 let (v19, v20) = cetus::math_u128::overflowing_add(v2, cetus::i128::abs_u128(v18));
+    //             if (!integer_mate::i128::is_neg(v18)) {
+    //                 let (v19, v20) = integer_mate::math_u128::overflowing_add(v2, integer_mate::i128::abs_u128(v18));
     //                 if (v20) {
     //                     abort 7
     //                 };
     //                 v2 = v19;
     //             } else {
-    //                 let (v21, v22) = cetus::math_u128::overflowing_sub(v2, cetus::i128::abs_u128(v18));
+    //                 let (v21, v22) = integer_mate::math_u128::overflowing_sub(v2, integer_mate::i128::abs_u128(v18));
     //                 if (v22) {
     //                     abort 8
     //                 };
@@ -467,7 +467,7 @@ module cetus::pool {
     //             v1 = v13;
     //         };
     //         if (arg1) {
-    //             v5 = cetus::i64::sub(v9.index, cetus::i64::from(1));
+    //             v5 = integer_mate::i64::sub(v9.index, integer_mate::i64::from(1));
     //             continue
     //         };
     //         v5 = v9.index;
@@ -491,7 +491,7 @@ module cetus::pool {
     //                 0x3::token::create_token_data_id(
     //                     0x1::account::get_signer_capability_address(&v0.signer_cap),
     //                     v0.collection_name,
-    //                     cetus::position_nft::position_name(v0.index, arg2)
+    //                     tap::position_nft::position_name(v0.index, arg2)
     //                 ),
     //                 0
     //             )
@@ -501,7 +501,7 @@ module cetus::pool {
     // }
 
     fun check_sub_remainer_amount(arg0: u64, arg1: u64): u64 {
-        let (v0, v1) = cetus::math_u64::overflowing_sub(arg0, arg1);
+        let (v0, v1) = integer_mate::math_u64::overflowing_sub(arg0, arg1);
         if (v1) {
             abort 13
         };
@@ -529,7 +529,7 @@ module cetus::pool {
         0x1::table::remove<u64, Position>(&mut v0.positions, arg2);
         let v3 = 0x1::account::create_signer_with_capability(&v0.signer_cap);
         let v4 = 0x1::signer::address_of(arg0);
-        // cetus::position_nft::burn(&v3, v4, v0.collection_name, v0.index, arg2);
+        // tap::position_nft::burn(&v3, v4, v0.collection_name, v0.index, arg2);
         let v5 = ClosePositionEvent {
             user: v4,
             pool: arg1,
@@ -576,7 +576,7 @@ module cetus::pool {
     //     arg0: &signer,
     //     arg1: address
     // ): (0x1::coin::Coin<T0>, 0x1::coin::Coin<T1>) acquires Pool {
-    //     cetus::config::assert_protocol_fee_claim_authority(arg0);
+    //     tap::config::assert_protocol_fee_claim_authority(arg0);
     //     let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
     //     assert_status<T0, T1>(v0);
     //     let v1 = v0.fee_protocol_coin_a;
@@ -626,31 +626,31 @@ module cetus::pool {
     //     v7
     // }
 
-    // fun cross_tick_and_update_liquidity<T0, T1>(arg0: &mut Pool<T0, T1>, arg1: cetus::i64::I64, arg2: bool) {
-    //     let v0 = 0x1::table::borrow_mut<cetus::i64::I64, Tick>(&mut arg0.ticks, arg1);
+    // fun cross_tick_and_update_liquidity<T0, T1>(arg0: &mut Pool<T0, T1>, arg1: integer_mate::i64::I64, arg2: bool) {
+    //     let v0 = 0x1::table::borrow_mut<integer_mate::i64::I64, Tick>(&mut arg0.ticks, arg1);
     //     let v1 = if (arg2) {
-    //         cetus::i128::neg(v0.liquidity_net)
+    //         integer_mate::i128::neg(v0.liquidity_net)
     //     } else {
     //         v0.liquidity_net
     //     };
-    //     if (!cetus::i128::is_neg(v1)) {
-    //         let (v2, v3) = cetus::math_u128::overflowing_add(arg0.liquidity, cetus::i128::abs_u128(v1));
+    //     if (!integer_mate::i128::is_neg(v1)) {
+    //         let (v2, v3) = integer_mate::math_u128::overflowing_add(arg0.liquidity, integer_mate::i128::abs_u128(v1));
     //         if (v3) {
     //             abort 7
     //         };
     //         arg0.liquidity = v2;
     //     } else {
-    //         let (v4, v5) = cetus::math_u128::overflowing_sub(arg0.liquidity, cetus::i128::abs_u128(v1));
+    //         let (v4, v5) = integer_mate::math_u128::overflowing_sub(arg0.liquidity, integer_mate::i128::abs_u128(v1));
     //         if (v5) {
     //             abort 8
     //         };
     //         arg0.liquidity = v4;
     //     };
-    //     v0.fee_growth_outside_a = cetus::math_u128::wrapping_sub(arg0.fee_growth_global_a, v0.fee_growth_outside_a);
-    //     v0.fee_growth_outside_b = cetus::math_u128::wrapping_sub(arg0.fee_growth_global_b, v0.fee_growth_outside_b);
+    //     v0.fee_growth_outside_a = integer_mate::math_u128::wrapping_sub(arg0.fee_growth_global_a, v0.fee_growth_outside_a);
+    //     v0.fee_growth_outside_b = integer_mate::math_u128::wrapping_sub(arg0.fee_growth_global_b, v0.fee_growth_outside_b);
     //     let v6 = 0;
     //     while (v6 < 0x1::vector::length<Rewarder>(&arg0.rewarder_infos)) {
-    //         *0x1::vector::borrow_mut<u128>(&mut v0.rewarders_growth_outside, v6) = cetus::math_u128::wrapping_sub(0x1::vector::borrow<Rewarder>(&arg0.rewarder_infos, v6).growth_global, *0x1::vector::borrow<u128>(&v0.rewarders_growth_outside, v6));
+    //         *0x1::vector::borrow_mut<u128>(&mut v0.rewarders_growth_outside, v6) = integer_mate::math_u128::wrapping_sub(0x1::vector::borrow<Rewarder>(&arg0.rewarder_infos, v6).growth_global, *0x1::vector::borrow<u128>(&v0.rewarders_growth_outside, v6));
     //         v6 = v6 + 1;
     //     };
     // }
@@ -664,11 +664,11 @@ module cetus::pool {
     //     }
     // }
 
-    fun default_tick(arg0: cetus::i64::I64): Tick {
+    fun default_tick(arg0: integer_mate::i64::I64): Tick {
         Tick {
             index: arg0,
-            sqrt_price: cetus::tick_math::get_sqrt_price_at_tick(arg0),
-            liquidity_net: cetus::i128::from(0),
+            sqrt_price: tap::tick_math::get_sqrt_price_at_tick(arg0),
+            liquidity_net: integer_mate::i128::from(0),
             liquidity_gross: 0,
             fee_growth_outside_a: 0,
             fee_growth_outside_b: 0,
@@ -711,9 +711,9 @@ module cetus::pool {
                         v5 = v7;
                         0x1::vector::push_back<Tick>(
                             &mut v3,
-                            *0x1::table::borrow<cetus::i64::I64, Tick>(
+                            *0x1::table::borrow<integer_mate::i64::I64, Tick>(
                                 &v0.ticks,
-                                cetus::i64::sub(cetus::i64::from((1000 * v2 + v4) * v1), tick_max(v1))
+                                integer_mate::i64::sub(integer_mate::i64::from((1000 * v2 + v4) * v1), tick_max(v1))
                             )
                         );
                         if (v7 == arg3) {
@@ -734,11 +734,11 @@ module cetus::pool {
     //     assert_status<T0, T1>(v0);
     //     update_rewarder<T0, T1>(v0);
     //     if (arg3) {
-    //         assert!(v0.current_sqrt_price > arg6 && arg6 >= cetus::tick_math::min_sqrt_price(), 22);
+    //         assert!(v0.current_sqrt_price > arg6 && arg6 >= tap::tick_math::min_sqrt_price(), 22);
     //     } else {
-    //         assert!(v0.current_sqrt_price < arg6 && arg6 <= cetus::tick_math::max_sqrt_price(), 22);
+    //         assert!(v0.current_sqrt_price < arg6 && arg6 <= tap::tick_math::max_sqrt_price(), 22);
     //     };
-    //     let v1 = swap_in_pool<T0, T1>(v0, arg3, arg4, arg6, arg5, cetus::config::get_protocol_fee_rate(), cetus::partner::get_ref_fee_rate(arg2));
+    //     let v1 = swap_in_pool<T0, T1>(v0, arg3, arg4, arg6, arg5, tap::config::get_protocol_fee_rate(), tap::partner::get_ref_fee_rate(arg2));
     //     let v2 = SwapEvent{
     //         atob           : arg3,
     //         pool_address   : arg0,
@@ -769,8 +769,8 @@ module cetus::pool {
 
     fun get_fee_in_tick_range<T0, T1>(
         pool: &Pool<T0, T1>,
-        lower_index: cetus::i64::I64,
-        upper_index: cetus::i64::I64
+        lower_index: integer_mate::i64::I64,
+        upper_index: integer_mate::i64::I64
     ): (u128, u128) {
         let lower_tick = borrow_tick<T0, T1>(pool, lower_index);
         let upper_tick = borrow_tick<T0, T1>(pool, upper_index);
@@ -779,11 +779,11 @@ module cetus::pool {
             (pool.fee_growth_global_a, pool.fee_growth_global_b)
         } else {
             let lower_tick = 0x1::option::borrow<Tick>(&lower_tick);
-            if (cetus::i64::lt(current_tick, lower_index)) {
-                (cetus::math_u128::wrapping_sub(
+            if (integer_mate::i64::lt(current_tick, lower_index)) {
+                (integer_mate::math_u128::wrapping_sub(
                     pool.fee_growth_global_a,
                     lower_tick.fee_growth_outside_a
-                ), cetus::math_u128::wrapping_sub(
+                ), integer_mate::math_u128::wrapping_sub(
                     pool.fee_growth_global_b, lower_tick.fee_growth_outside_b))
             } else {
                 (lower_tick.fee_growth_outside_a, lower_tick.fee_growth_outside_b)
@@ -793,24 +793,24 @@ module cetus::pool {
             (0, 0)
         } else {
             let upper_tick = 0x1::option::borrow<Tick>(&upper_tick);
-            if (cetus::i64::lt(current_tick, upper_index)) {
+            if (integer_mate::i64::lt(current_tick, upper_index)) {
                 (upper_tick.fee_growth_outside_a, upper_tick.fee_growth_outside_b)
             } else {
-                (cetus::math_u128::wrapping_sub(
+                (integer_mate::math_u128::wrapping_sub(
                     pool.fee_growth_global_a,
                     upper_tick.fee_growth_outside_a
-                ), cetus::math_u128::wrapping_sub(
+                ), integer_mate::math_u128::wrapping_sub(
                     pool.fee_growth_global_b, upper_tick.fee_growth_outside_b))
             }
         };
-        (cetus::math_u128::wrapping_sub(
-            cetus::math_u128::wrapping_sub(pool.fee_growth_global_a, v3),
+        (integer_mate::math_u128::wrapping_sub(
+            integer_mate::math_u128::wrapping_sub(pool.fee_growth_global_a, v3),
             v6
-        ), cetus::math_u128::wrapping_sub(cetus::math_u128::wrapping_sub(
+        ), integer_mate::math_u128::wrapping_sub(integer_mate::math_u128::wrapping_sub(
             pool.fee_growth_global_b, v4), v7))
     }
 
-    // fun get_next_tick_for_swap<T0, T1>(arg0: &Pool<T0, T1>, arg1: cetus::i64::I64, arg2: bool, arg3: cetus::i64::I64) : 0x1::option::Option<Tick> {
+    // fun get_next_tick_for_swap<T0, T1>(arg0: &Pool<T0, T1>, arg1: integer_mate::i64::I64, arg2: bool, arg3: integer_mate::i64::I64) : 0x1::option::Option<Tick> {
     //     let v0 = arg0.tick_spacing;
     //     let (v1, v2) = tick_position(arg1, v0);
     //     let v3 = v2;
@@ -823,7 +823,7 @@ module cetus::pool {
     //             let v5 = 0x1::table::borrow<u64, 0x1::bit_vector::BitVector>(&arg0.tick_indexes, v4);
     //             while (v3 >= 0 && v3 < 1000) {
     //                 if (0x1::bit_vector::is_index_set(v5, v3)) {
-    //                     return 0x1::option::some<Tick>(*0x1::table::borrow<cetus::i64::I64, Tick>(&arg0.ticks, cetus::i64::sub(cetus::i64::from((1000 * v4 + v3) * v0), arg3)))
+    //                     return 0x1::option::some<Tick>(*0x1::table::borrow<integer_mate::i64::I64, Tick>(&arg0.ticks, integer_mate::i64::sub(integer_mate::i64::from((1000 * v4 + v3) * v0), arg3)))
     //                 };
     //                 if (arg2) {
     //                     if (v3 == 0) {
@@ -871,7 +871,7 @@ module cetus::pool {
     public fun get_position_tick_range<T0, T1>(
         arg0: address,
         arg1: u64
-    ): (cetus::i64::I64, cetus::i64::I64) acquires Pool {
+    ): (integer_mate::i64::I64, integer_mate::i64::I64) acquires Pool {
         let v0 = borrow_global<Pool<T0, T1>>(arg0);
         if (!0x1::table::contains<u64, Position>(&v0.positions, arg1)) {
             abort 29
@@ -883,7 +883,7 @@ module cetus::pool {
     public fun get_position_tick_range_by_pool<T0, T1>(
         arg0: &Pool<T0, T1>,
         arg1: u64
-    ): (cetus::i64::I64, cetus::i64::I64) {
+    ): (integer_mate::i64::I64, integer_mate::i64::I64) {
         if (!0x1::table::contains<u64, Position>(&arg0.positions, arg1)) {
             abort 29
         };
@@ -893,8 +893,8 @@ module cetus::pool {
 
     fun get_reward_in_tick_range<T0, T1>(
         arg0: &Pool<T0, T1>,
-        arg1: cetus::i64::I64,
-        arg2: cetus::i64::I64
+        arg1: integer_mate::i64::I64,
+        arg2: integer_mate::i64::I64
     ): vector<u128> {
         let v0 = borrow_tick<T0, T1>(arg0, arg1);
         let v1 = borrow_tick<T0, T1>(arg0, arg2);
@@ -905,8 +905,8 @@ module cetus::pool {
             let v5 = 0x1::vector::borrow<Rewarder>(&arg0.rewarder_infos, v4).growth_global;
             let v6 = if (0x1::option::is_none<Tick>(&v0)) {
                 v5
-            } else if (cetus::i64::lt(v2, arg1)) {
-                cetus::math_u128::wrapping_sub(
+            } else if (integer_mate::i64::lt(v2, arg1)) {
+                integer_mate::math_u128::wrapping_sub(
                     v5,
                     *0x1::vector::borrow<u128>(&0x1::option::borrow<Tick>(&v0).rewarders_growth_outside, v4)
                 )
@@ -915,17 +915,17 @@ module cetus::pool {
             };
             let v7 = if (0x1::option::is_none<Tick>(&v1)) {
                 0
-            } else if (cetus::i64::lt(v2, arg2)) {
+            } else if (integer_mate::i64::lt(v2, arg2)) {
                 *0x1::vector::borrow<u128>(&0x1::option::borrow<Tick>(&v1).rewarders_growth_outside, v4)
             } else {
-                cetus::math_u128::wrapping_sub(
+                integer_mate::math_u128::wrapping_sub(
                     v5,
                     *0x1::vector::borrow<u128>(&0x1::option::borrow<Tick>(&v1).rewarders_growth_outside, v4)
                 )
             };
             0x1::vector::push_back<u128>(
                 &mut v3,
-                cetus::math_u128::wrapping_sub(cetus::math_u128::wrapping_sub(v5, v6), v7)
+                integer_mate::math_u128::wrapping_sub(integer_mate::math_u128::wrapping_sub(v5, v6), v7)
             );
             v4 = v4 + 1;
         };
@@ -944,7 +944,7 @@ module cetus::pool {
     }
 
     // public fun initialize_rewarder<T0, T1, T2>(arg0: &signer, arg1: address, arg2: address, arg3: u64) acquires Pool {
-    //     cetus::config::assert_protocol_authority(arg0);
+    //     tap::config::assert_protocol_authority(arg0);
     //     let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
     //     assert_status<T0, T1>(v0);
     //     let v1 = &mut v0.rewarder_infos;
@@ -963,7 +963,7 @@ module cetus::pool {
     //     };
     // }
 
-    fun new_empty_position(arg0: address, arg1: cetus::i64::I64, arg2: cetus::i64::I64, arg3: u64): Position {
+    fun new_empty_position(arg0: address, arg1: integer_mate::i64::I64, arg2: integer_mate::i64::I64, arg3: u64): Position {
         let v0 = PositionRewarder {
             growth_inside: 0,
             amount_owed: 0,
@@ -998,21 +998,21 @@ module cetus::pool {
     public fun open_position<T0, T1>(
         arg0: &signer,
         arg1: address,
-        arg2: cetus::i64::I64,
-        arg3: cetus::i64::I64
+        arg2: integer_mate::i64::I64,
+        arg3: integer_mate::i64::I64
     ): u64 acquires Pool {
-        assert!(cetus::i64::lt(arg2, arg3), 30);
+        assert!(integer_mate::i64::lt(arg2, arg3), 30);
         let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
         assert_status<T0, T1>(v0);
-        assert!(cetus::tick_math::is_valid_index(arg2, v0.tick_spacing), 30);
-        assert!(cetus::tick_math::is_valid_index(arg3, v0.tick_spacing), 30);
+        assert!(tap::tick_math::is_valid_index(arg2, v0.tick_spacing), 30);
+        assert!(tap::tick_math::is_valid_index(arg3, v0.tick_spacing), 30);
         0x1::table::add<u64, Position>(
             &mut v0.positions,
             v0.position_index,
             new_empty_position(arg1, arg2, arg3, v0.position_index)
         );
         let v1 = 0x1::account::create_signer_with_capability(&v0.signer_cap);
-        // cetus::position_nft::mint(arg0, &v1, v0.index, v0.position_index, v0.uri, v0.collection_name);
+        // tap::position_nft::mint(arg0, &v1, v0.index, v0.position_index, v0.uri, v0.collection_name);
         let v2 = OpenPositionEvent {
             user: 0x1::signer::address_of(arg0),
             pool: arg1,
@@ -1026,8 +1026,8 @@ module cetus::pool {
     }
 
     public fun pause<T0, T1>(arg0: &signer, arg1: address) acquires Pool {
-        cetus::config::assert_protocol_status();
-        cetus::config::assert_protocol_authority(arg0);
+        tap::config::assert_protocol_status();
+        tap::config::assert_protocol_authority(arg0);
         borrow_global_mut<Pool<T0, T1>>(arg1).is_pause = true;
     }
 
@@ -1050,7 +1050,7 @@ module cetus::pool {
         update_position_liquidity(v5, arg2, false);
         upsert_tick_by_liquidity<T0, T1>(v0, v1, arg2, false, false);
         upsert_tick_by_liquidity<T0, T1>(v0, v2, arg2, false, true);
-        let (v6, v7) = cetus::clmm_math::get_amount_by_liquidity(
+        let (v6, v7) = tap::clmm_math::get_amount_by_liquidity(
             v1,
             v2,
             v0.current_tick_index,
@@ -1058,8 +1058,8 @@ module cetus::pool {
             arg2,
             false
         );
-        let (v8, v9) = if (cetus::i64::lte(v1, v0.current_tick_index) && cetus::i64::lt(v0.current_tick_index, v2)) {
-            cetus::math_u128::overflowing_sub(v0.liquidity, arg2)
+        let (v8, v9) = if (integer_mate::i64::lte(v1, v0.current_tick_index) && integer_mate::i64::lt(v0.current_tick_index, v2)) {
+            integer_mate::math_u128::overflowing_sub(v0.liquidity, arg2)
         } else {
             (v0.liquidity, false)
         };
@@ -1080,16 +1080,16 @@ module cetus::pool {
         (0x1::coin::extract<T0>(&mut v0.coin_a, v6), 0x1::coin::extract<T1>(&mut v0.coin_b, v7))
     }
 
-    fun remove_tick<T0, T1>(arg0: &mut Pool<T0, T1>, arg1: cetus::i64::I64) {
+    fun remove_tick<T0, T1>(arg0: &mut Pool<T0, T1>, arg1: integer_mate::i64::I64) {
         let (v0, v1) = tick_position(arg1, arg0.tick_spacing);
         if (!0x1::table::contains<u64, 0x1::bit_vector::BitVector>(&arg0.tick_indexes, v0)) {
             abort 9
         };
         0x1::bit_vector::unset(0x1::table::borrow_mut<u64, 0x1::bit_vector::BitVector>(&mut arg0.tick_indexes, v0), v1);
-        if (!0x1::table::contains<cetus::i64::I64, Tick>(&arg0.ticks, arg1)) {
+        if (!0x1::table::contains<integer_mate::i64::I64, Tick>(&arg0.ticks, arg1)) {
             abort 10
         };
-        0x1::table::remove<cetus::i64::I64, Tick>(&mut arg0.ticks, arg1);
+        0x1::table::remove<integer_mate::i64::I64, Tick>(&mut arg0.ticks, arg1);
     }
 
     public fun repay_add_liquidity<T0, T1>(
@@ -1125,14 +1125,14 @@ module cetus::pool {
     //     if (v1) {
     //         assert!(0x1::coin::value<T0>(&arg0) == v3, 6);
     //         if (v4 > 0) {
-    //             cetus::partner::receive_ref_fee<T0>(v2, 0x1::coin::extract<T0>(&mut arg0, v4));
+    //             tap::partner::receive_ref_fee<T0>(v2, 0x1::coin::extract<T0>(&mut arg0, v4));
     //         };
     //         0x1::coin::merge<T0>(&mut v5.coin_a, arg0);
     //         0x1::coin::destroy_zero<T1>(arg1);
     //     } else {
     //         assert!(0x1::coin::value<T1>(&arg1) == v3, 6);
     //         if (v4 > 0) {
-    //             cetus::partner::receive_ref_fee<T1>(v2, 0x1::coin::extract<T1>(&mut arg1, v4));
+    //             tap::partner::receive_ref_fee<T1>(v2, 0x1::coin::extract<T1>(&mut arg1, v4));
     //         };
     //         0x1::coin::merge<T1>(&mut v5.coin_b, arg1);
     //         0x1::coin::destroy_zero<T0>(arg0);
@@ -1140,17 +1140,17 @@ module cetus::pool {
     // }
 
     public fun reset_init_price_v2<T0, T1>(arg0: &signer, arg1: address, arg2: u128) acquires Pool {
-        cetus::config::assert_reset_init_price_authority(arg0);
+        tap::config::assert_reset_init_price_authority(arg0);
         let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
         assert!(
-            arg2 > cetus::tick_math::get_sqrt_price_at_tick(
+            arg2 > tap::tick_math::get_sqrt_price_at_tick(
                 tick_min(v0.tick_spacing)
-            ) && arg2 < cetus::tick_math::get_sqrt_price_at_tick(tick_max(v0.tick_spacing)),
+            ) && arg2 < tap::tick_math::get_sqrt_price_at_tick(tick_max(v0.tick_spacing)),
             38
         );
         assert!(v0.position_index == 1, 33);
         v0.current_sqrt_price = arg2;
-        v0.current_tick_index = cetus::tick_math::get_tick_at_sqrt_price(arg2);
+        v0.current_tick_index = tap::tick_math::get_tick_at_sqrt_price(arg2);
     }
 
     fun rewarder_growth_globals(arg0: vector<Rewarder>): vector<u128> {
@@ -1168,7 +1168,7 @@ module cetus::pool {
     //     let v1 = arg0.current_tick_index;
     //     let v2 = tick_max(arg0.tick_spacing);
     //     while (arg4 > 0 && arg0.current_sqrt_price != arg3) {
-    //         if (cetus::i64::gt(v1, v2) || cetus::i64::lt(v1, tick_min(arg0.tick_spacing))) {
+    //         if (integer_mate::i64::gt(v1, v2) || integer_mate::i64::lt(v1, tick_min(arg0.tick_spacing))) {
     //             abort 12
     //         };
     //         let v3 = get_next_tick_for_swap<T0, T1>(arg0, v1, arg1, v2);
@@ -1177,11 +1177,11 @@ module cetus::pool {
     //         };
     //         let v4 = 0x1::option::destroy_some<Tick>(v3);
     //         let v5 = if (arg1) {
-    //             cetus::math_u128::max(arg3, v4.sqrt_price)
+    //             integer_mate::math_u128::max(arg3, v4.sqrt_price)
     //         } else {
-    //             cetus::math_u128::min(arg3, v4.sqrt_price)
+    //             integer_mate::math_u128::min(arg3, v4.sqrt_price)
     //         };
-    //         let (v6, v7, v8, v9) = cetus::clmm_math::compute_swap_step(arg0.current_sqrt_price, v5, arg0.liquidity, arg4, arg0.fee_rate, arg1, arg2);
+    //         let (v6, v7, v8, v9) = tap::clmm_math::compute_swap_step(arg0.current_sqrt_price, v5, arg0.liquidity, arg4, arg0.fee_rate, arg1, arg2);
     //         if (v6 != 0 || v9 != 0) {
     //             if (arg2) {
     //                 let v10 = check_sub_remainer_amount(arg4, v6);
@@ -1197,7 +1197,7 @@ module cetus::pool {
     //         if (v8 == v4.sqrt_price) {
     //             arg0.current_sqrt_price = v4.sqrt_price;
     //             let v13 = if (arg1) {
-    //                 cetus::i64::sub(v4.index, cetus::i64::from(1))
+    //                 integer_mate::i64::sub(v4.index, integer_mate::i64::from(1))
     //             } else {
     //                 v4.index
     //             };
@@ -1205,10 +1205,10 @@ module cetus::pool {
     //             cross_tick_and_update_liquidity<T0, T1>(arg0, v4.index, arg1);
     //         } else {
     //             arg0.current_sqrt_price = v8;
-    //             arg0.current_tick_index = cetus::tick_math::get_tick_at_sqrt_price(v8);
+    //             arg0.current_tick_index = tap::tick_math::get_tick_at_sqrt_price(v8);
     //         };
     //         if (arg1) {
-    //             v1 = cetus::i64::sub(v4.index, cetus::i64::from(1));
+    //             v1 = integer_mate::i64::sub(v4.index, integer_mate::i64::from(1));
     //             continue
     //         };
     //         v1 = v4.index;
@@ -1220,35 +1220,35 @@ module cetus::pool {
     //     arg0.pay_amount
     // }
 
-    fun tick_indexes_index(arg0: cetus::i64::I64, arg1: u64): u64 {
-        let v0 = cetus::i64::sub(arg0, tick_min(arg1));
-        if (cetus::i64::is_neg(v0)) {
+    fun tick_indexes_index(arg0: integer_mate::i64::I64, arg1: u64): u64 {
+        let v0 = integer_mate::i64::sub(arg0, tick_min(arg1));
+        if (integer_mate::i64::is_neg(v0)) {
             abort 1
         };
-        cetus::i64::as_u64(v0) / arg1 * 1000
+        integer_mate::i64::as_u64(v0) / arg1 * 1000
     }
 
     fun tick_indexes_max(arg0: u64): u64 {
-        cetus::tick_math::tick_bound() * 2 / arg0 * 1000 + 1
+        tap::tick_math::tick_bound() * 2 / arg0 * 1000 + 1
     }
 
-    fun tick_max(arg0: u64): cetus::i64::I64 {
-        let v0 = cetus::tick_math::max_tick();
-        cetus::i64::sub(v0, cetus::i64::mod(v0, cetus::i64::from(arg0)))
+    fun tick_max(arg0: u64): integer_mate::i64::I64 {
+        let v0 = tap::tick_math::max_tick();
+        integer_mate::i64::sub(v0, integer_mate::i64::mod(v0, integer_mate::i64::from(arg0)))
     }
 
-    fun tick_min(arg0: u64): cetus::i64::I64 {
-        let v0 = cetus::tick_math::min_tick();
-        cetus::i64::sub(v0, cetus::i64::mod(v0, cetus::i64::from(arg0)))
+    fun tick_min(arg0: u64): integer_mate::i64::I64 {
+        let v0 = tap::tick_math::min_tick();
+        integer_mate::i64::sub(v0, integer_mate::i64::mod(v0, integer_mate::i64::from(arg0)))
     }
 
-    fun tick_offset(arg0: u64, arg1: u64, arg2: cetus::i64::I64): u64 {
-        (cetus::i64::as_u64(cetus::i64::add(arg2, tick_max(arg1))) - arg0 * arg1 * 1000) / arg1
+    fun tick_offset(arg0: u64, arg1: u64, arg2: integer_mate::i64::I64): u64 {
+        (integer_mate::i64::as_u64(integer_mate::i64::add(arg2, tick_max(arg1))) - arg0 * arg1 * 1000) / arg1
     }
 
-    fun tick_position(arg0: cetus::i64::I64, arg1: u64): (u64, u64) {
+    fun tick_position(arg0: integer_mate::i64::I64, arg1: u64): (u64, u64) {
         let v0 = tick_indexes_index(arg0, arg1);
-        (v0, (cetus::i64::as_u64(cetus::i64::add(arg0, tick_max(arg1))) - v0 * arg1 * 1000) / arg1)
+        (v0, (integer_mate::i64::as_u64(integer_mate::i64::add(arg0, tick_max(arg1))) - v0 * arg1 * 1000) / arg1)
     }
 
     // public fun transfer_rewarder_authority<T0, T1>(
@@ -1274,8 +1274,8 @@ module cetus::pool {
     // }
 
     public fun unpause<T0, T1>(arg0: &signer, arg1: address) acquires Pool {
-        cetus::config::assert_protocol_status();
-        cetus::config::assert_protocol_authority(arg0);
+        tap::config::assert_protocol_status();
+        tap::config::assert_protocol_authority(arg0);
         borrow_global_mut<Pool<T0, T1>>(arg1).is_pause = false;
     }
 
@@ -1287,7 +1287,7 @@ module cetus::pool {
     //     let v1 = 0x1::vector::borrow_mut<Rewarder>(&mut v0.rewarder_infos, (arg2 as u64));
     //     assert!(0x1::signer::address_of(arg0) == v1.authority, 26);
     //     assert!(v1.coin_type == 0x1::type_info::type_of<T2>(), 25);
-    //     assert!(0x1::coin::balance<T2>(arg1) >= (cetus::full_math_u128::mul_shr(86400, arg3, 64) as u64), 24);
+    //     assert!(0x1::coin::balance<T2>(arg1) >= (integer_mate::full_math_u128::mul_shr(86400, arg3, 64) as u64), 24);
     //     v1.emissions_per_second = arg3;
     //     let v2 = UpdateEmissionEvent {
     //         pool_address: arg1,
@@ -1298,10 +1298,10 @@ module cetus::pool {
     // }
 
     // public fun update_fee_rate<T0, T1>(arg0: &signer, arg1: address, arg2: u64) acquires Pool {
-    //     if (arg2 > cetus::fee_tier::max_fee_rate()) {
+    //     if (arg2 > tap::fee_tier::max_fee_rate()) {
     //         abort 17
     //     };
-    //     cetus::config::assert_protocol_authority(arg0);
+    //     tap::config::assert_protocol_authority(arg0);
     //     let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
     //     assert_status<T0, T1>(v0);
     //     v0.fee_rate = arg2;
@@ -1314,28 +1314,28 @@ module cetus::pool {
     // }
 
     fun update_pool_fee<T0, T1>(arg0: &mut Pool<T0, T1>, arg1: u64, arg2: u64, arg3: u64, arg4: bool): u64 {
-        let v0 = cetus::full_math_u64::mul_div_ceil(arg1, arg3, 10000);
+        let v0 = integer_mate::full_math_u64::mul_div_ceil(arg1, arg3, 10000);
         let v1 = arg1 - v0;
         let v2 = if (arg2 == 0) {
             0
         } else {
-            cetus::full_math_u64::mul_div_floor(v0, arg2, 10000)
+            integer_mate::full_math_u64::mul_div_floor(v0, arg2, 10000)
         };
         if (arg4) {
-            arg0.fee_protocol_coin_a = cetus::math_u64::wrapping_add(arg0.fee_protocol_coin_a, v0 - v2);
+            arg0.fee_protocol_coin_a = integer_mate::math_u64::wrapping_add(arg0.fee_protocol_coin_a, v0 - v2);
         } else {
-            arg0.fee_protocol_coin_b = cetus::math_u64::wrapping_add(arg0.fee_protocol_coin_b, v0 - v2);
+            arg0.fee_protocol_coin_b = integer_mate::math_u64::wrapping_add(arg0.fee_protocol_coin_b, v0 - v2);
         };
         if (v1 == 0 || arg0.liquidity == 0) {
             return v2
         };
         if (arg4) {
-            arg0.fee_growth_global_a = cetus::math_u128::wrapping_add(
+            arg0.fee_growth_global_a = integer_mate::math_u128::wrapping_add(
                 arg0.fee_growth_global_a,
                 ((v1 as u128) << 64) / arg0.liquidity
             );
         } else {
-            arg0.fee_growth_global_b = cetus::math_u128::wrapping_add(
+            arg0.fee_growth_global_b = integer_mate::math_u128::wrapping_add(
                 arg0.fee_growth_global_b,
                 ((v1 as u128) << 64) / arg0.liquidity
             );
@@ -1345,27 +1345,27 @@ module cetus::pool {
 
     // public fun update_pool_uri<T0, T1>(arg0: &signer, arg1: address, arg2: 0x1::string::String) acquires Pool {
     //     assert!(!0x1::string::is_empty(&arg2), 41);
-    //     assert!(cetus::config::allow_set_position_nft_uri(arg0), 40);
+    //     assert!(tap::config::allow_set_position_nft_uri(arg0), 40);
     //     let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
     //     let v1 = 0x1::account::create_signer_with_capability(&v0.signer_cap);
-    //     cetus::position_nft::mutate_collection_uri(&v1, v0.collection_name, arg2);
+    //     tap::position_nft::mutate_collection_uri(&v1, v0.collection_name, arg2);
     //     v0.uri = arg2;
     // }
 
     fun update_position_fee(arg0: &mut Position, arg1: u128, arg2: u128) {
-        let (v0, v1) = cetus::math_u64::overflowing_add(
+        let (v0, v1) = integer_mate::math_u64::overflowing_add(
             arg0.fee_owed_a,
-            (cetus::full_math_u128::mul_shr(
+            (integer_mate::full_math_u128::mul_shr(
                 arg0.liquidity,
-                cetus::math_u128::wrapping_sub(arg1, arg0.fee_growth_inside_a),
+                integer_mate::math_u128::wrapping_sub(arg1, arg0.fee_growth_inside_a),
                 64
             ) as u64)
         );
-        let (v2, v3) = cetus::math_u64::overflowing_add(
+        let (v2, v3) = integer_mate::math_u64::overflowing_add(
             arg0.fee_owed_b,
-            (cetus::full_math_u128::mul_shr(
+            (integer_mate::full_math_u128::mul_shr(
                 arg0.liquidity,
-                cetus::math_u128::wrapping_sub(arg2, arg0.fee_growth_inside_b),
+                integer_mate::math_u128::wrapping_sub(arg2, arg0.fee_growth_inside_b),
                 64
             ) as u64)
         );
@@ -1387,9 +1387,9 @@ module cetus::pool {
             return
         };
         let (v0, v1) = if (arg2) {
-            cetus::math_u128::overflowing_add(arg0.liquidity, delta_liquidity)
+            integer_mate::math_u128::overflowing_add(arg0.liquidity, delta_liquidity)
         } else {
-            cetus::math_u128::overflowing_sub(arg0.liquidity, delta_liquidity)
+            integer_mate::math_u128::overflowing_sub(arg0.liquidity, delta_liquidity)
         };
         assert!(!v1, 36);
         arg0.liquidity = v0;
@@ -1401,10 +1401,10 @@ module cetus::pool {
             let v1 = *0x1::vector::borrow<u128>(&arg1, v0);
             let v2 = 0x1::vector::borrow_mut<PositionRewarder>(&mut arg0.rewarder_infos, v0);
             v2.growth_inside = v1;
-            let (v3, v4) = cetus::math_u64::overflowing_add(
+            let (v3, v4) = integer_mate::math_u64::overflowing_add(
                 v2.amount_owed,
-                (cetus::full_math_u128::mul_shr(
-                    cetus::math_u128::wrapping_sub(v1, v2.growth_inside),
+                (integer_mate::full_math_u128::mul_shr(
+                    integer_mate::math_u128::wrapping_sub(v1, v2.growth_inside),
                     arg0.liquidity,
                     64
                 ) as u64)
@@ -1431,7 +1431,7 @@ module cetus::pool {
             ).growth_global = 0x1::vector::borrow<Rewarder>(
                 &arg0.rewarder_infos,
                 v2
-            ).growth_global + cetus::full_math_u128::mul_div_floor(
+            ).growth_global + integer_mate::full_math_u128::mul_div_floor(
                 ((v0 - v1) as u128),
                 0x1::vector::borrow<Rewarder>(&arg0.rewarder_infos, v2).emissions_per_second,
                 arg0.liquidity
@@ -1441,15 +1441,15 @@ module cetus::pool {
     }
 
     fun update_swap_result(arg0: &mut SwapResult, arg1: u64, arg2: u64, arg3: u64) {
-        let (v0, v1) = cetus::math_u64::overflowing_add(arg0.amount_in, arg1);
+        let (v0, v1) = integer_mate::math_u64::overflowing_add(arg0.amount_in, arg1);
         if (v1) {
             abort 14
         };
-        let (v2, v3) = cetus::math_u64::overflowing_add(arg0.amount_out, arg2);
+        let (v2, v3) = integer_mate::math_u64::overflowing_add(arg0.amount_out, arg2);
         if (v3) {
             abort 15
         };
-        let (v4, v5) = cetus::math_u64::overflowing_add(arg0.fee_amount, arg3);
+        let (v4, v5) = integer_mate::math_u64::overflowing_add(arg0.fee_amount, arg3);
         if (v5) {
             abort 16
         };
@@ -1460,7 +1460,7 @@ module cetus::pool {
 
     fun upsert_tick_by_liquidity<T0, T1>(
         arg0: &mut Pool<T0, T1>,
-        arg1: cetus::i64::I64,
+        arg1: integer_mate::i64::I64,
         arg2: u128,
         arg3: bool,
         arg4: bool
@@ -1472,9 +1472,9 @@ module cetus::pool {
             return
         };
         let (v3, v4) = if (arg3) {
-            cetus::math_u128::overflowing_add(v2.liquidity_gross, arg2)
+            integer_mate::math_u128::overflowing_add(v2.liquidity_gross, arg2)
         } else {
-            cetus::math_u128::overflowing_sub(v2.liquidity_gross, arg2)
+            integer_mate::math_u128::overflowing_sub(v2.liquidity_gross, arg2)
         };
         if (v4) {
             abort 7
@@ -1484,7 +1484,7 @@ module cetus::pool {
             return
         };
         let (v5, v6, v7) = if (v2.liquidity_gross == 0) {
-            if (cetus::i64::gte(arg0.current_tick_index, arg1)) {
+            if (integer_mate::i64::gte(arg0.current_tick_index, arg1)) {
                 (arg0.fee_growth_global_a, arg0.fee_growth_global_b, rewarder_growth_globals(arg0.rewarder_infos))
             } else {
                 (0, 0, vector[0, 0, 0])
@@ -1494,17 +1494,17 @@ module cetus::pool {
         };
         let (v8, v9) = if (arg3) {
             let (v10, v11) = if (arg4) {
-                let (v12, v13) = cetus::i128::overflowing_sub(v2.liquidity_net, cetus::i128::from(arg2));
+                let (v12, v13) = integer_mate::i128::overflowing_sub(v2.liquidity_net, integer_mate::i128::from(arg2));
                 (v13, v12)
             } else {
-                let (v14, v15) = cetus::i128::overflowing_add(v2.liquidity_net, cetus::i128::from(arg2));
+                let (v14, v15) = integer_mate::i128::overflowing_add(v2.liquidity_net, integer_mate::i128::from(arg2));
                 (v15, v14)
             };
             (v11, v10)
         } else if (arg4) {
-            cetus::i128::overflowing_add(v2.liquidity_net, cetus::i128::from(arg2))
+            integer_mate::i128::overflowing_add(v2.liquidity_net, integer_mate::i128::from(arg2))
         } else {
-            cetus::i128::overflowing_sub(v2.liquidity_net, cetus::i128::from(arg2))
+            integer_mate::i128::overflowing_sub(v2.liquidity_net, integer_mate::i128::from(arg2))
         };
         if (v9) {
             abort 7

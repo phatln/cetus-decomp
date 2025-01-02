@@ -1,13 +1,12 @@
 [package]
-name = "cetus"
+name = "Tap"
 version = "2.1.0"
 authors = []
 
 [addresses]
-cetus = "_"
+tap= "_"
 
 [dev-addresses]
-cetus = "0xd285d39008b29c80f77079f86d8b60b5ca836014d5359d7282a80c239d4426c9"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-framework.git"
@@ -18,5 +17,10 @@ subdir = "aptos-framework"
 git = "https://github.com/aptos-labs/aptos-framework.git"
 rev = "mainnet"
 subdir = "aptos-token"
+
+[dependencies.IntegerMate]
+git = "https://github.com/phatln/integer-mate.git"
+rev = "bd450fbf2db88114f84ab90a67bd885c430882bb"
+subdir = "aptos"
 
 [dev-dependencies]

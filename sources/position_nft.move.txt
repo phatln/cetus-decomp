@@ -1,4 +1,4 @@
-module cetus::position_nft {
+module tap::position_nft {
     public fun create_collection<T0, T1>(arg0: &signer, arg1: u64, arg2: 0x1::string::String, arg3: 0x1::string::String) : 0x1::string::String {
         let v0 = collection_name<T0, T1>(arg1);
         let v1 = 0x1::vector::empty<bool>();
@@ -19,7 +19,7 @@ module cetus::position_nft {
         0x1::string::append_utf8(&mut v0, b"-");
         0x1::string::append(&mut v0, 0x1::coin::symbol<T1>());
         0x1::string::append_utf8(&mut v0, b"_tick(");
-        0x1::string::append(&mut v0, cetus::utils::str(arg0));
+        0x1::string::append(&mut v0, tap::utils::str(arg0));
         0x1::string::append_utf8(&mut v0, b")");
         v0
     }
@@ -45,9 +45,9 @@ module cetus::position_nft {
 
     public fun position_name(arg0: u64, arg1: u64) : 0x1::string::String {
         let v0 = 0x1::string::utf8(b"Cetus LP | Pool");
-        0x1::string::append(&mut v0, cetus::utils::str(arg0));
+        0x1::string::append(&mut v0, tap::utils::str(arg0));
         0x1::string::append_utf8(&mut v0, b"-");
-        0x1::string::append(&mut v0, cetus::utils::str(arg1));
+        0x1::string::append(&mut v0, tap::utils::str(arg1));
         v0
     }
 

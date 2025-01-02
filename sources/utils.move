@@ -1,4 +1,4 @@
-module cetus::utils {
+module tap::utils {
     public fun compare_coin<T0, T1>() : 0x1::comparator::Result {
         let v0 = 0x1::type_info::type_of<T0>();
         let v1 = 0x1::type_info::type_of<T1>();

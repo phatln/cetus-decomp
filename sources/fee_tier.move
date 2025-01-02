@@ -1,4 +1,4 @@
-module cetus::fee_tier {
+module tap::fee_tier {
     #[event]
     struct AddEvent has drop, store {
         tick_spacing: u64,
@@ -28,8 +28,8 @@ module cetus::fee_tier {
 
     public fun add_fee_tier(arg0: &signer, arg1: u64, arg2: u64) acquires FeeTiers {
         assert!(arg2 <= 200000, 4);
-        cetus::config::assert_protocol_authority(arg0);
-        let v0 = borrow_global_mut<FeeTiers>(@cetus);
+        tap::config::assert_protocol_authority(arg0);
+        let v0 = borrow_global_mut<FeeTiers>(@tap);
         assert!(!0x1::simple_map::contains_key<u64, FeeTier>(&v0.fee_tiers, &arg1), 1);
         let v1 = FeeTier{
             tick_spacing : arg1,
@@ -44,8 +44,8 @@ module cetus::fee_tier {
     }
 
     public fun delete_fee_tier(arg0: &signer, arg1: u64) acquires FeeTiers {
-        cetus::config::assert_protocol_authority(arg0);
-        let v0 = borrow_global_mut<FeeTiers>(@cetus);
+        tap::config::assert_protocol_authority(arg0);
+        let v0 = borrow_global_mut<FeeTiers>(@tap);
         assert!(0x1::simple_map::contains_key<u64, FeeTier>(&v0.fee_tiers, &arg1), 2);
         0x1::simple_map::remove<u64, FeeTier>(&mut v0.fee_tiers, &arg1);
         let v1 = DeleteEvent{tick_spacing: arg1};
@@ -53,13 +53,13 @@ module cetus::fee_tier {
     }
 
     public fun get_fee_rate(arg0: u64) : u64 acquires FeeTiers {
-        let v0 = &borrow_global<FeeTiers>(@cetus).fee_tiers;
+        let v0 = &borrow_global<FeeTiers>(@tap).fee_tiers;
         assert!(0x1::simple_map::contains_key<u64, FeeTier>(v0, &arg0), 2);
         0x1::simple_map::borrow<u64, FeeTier>(v0, &arg0).fee_rate
     }
 
     public fun initialize(arg0: &signer) {
-        cetus::config::assert_initialize_authority(arg0);
+        tap::config::assert_initialize_authority(arg0);
         let v0 = FeeTiers{
             fee_tiers     : 0x1::simple_map::create<u64, FeeTier>(),
         };
@@ -72,8 +72,8 @@ module cetus::fee_tier {
 
     public fun update_fee_tier(arg0: &signer, arg1: u64, arg2: u64) acquires FeeTiers {
         assert!(arg2 <= 200000, 4);
-        cetus::config::assert_protocol_authority(arg0);
-        let v0 = borrow_global_mut<FeeTiers>(@cetus);
+        tap::config::assert_protocol_authority(arg0);
+        let v0 = borrow_global_mut<FeeTiers>(@tap);
         assert!(0x1::simple_map::contains_key<u64, FeeTier>(&v0.fee_tiers, &arg1), 2);
         let v1 = 0x1::simple_map::borrow_mut<u64, FeeTier>(&mut v0.fee_tiers, &arg1);
         v1.fee_rate = arg2;

@@ -1,4 +1,4 @@
-module cetus::acl {
+module tap::acl {
     struct ACL has store {
         permissions: 0x1::table::Table<address, u128>,
     }
