@@ -294,6 +294,5 @@ module tap::clmm_router {
     //     tap::pool::update_emission<T0, T1, T2>(arg0, arg1, arg2, arg3);
     // }
 
-    // decompiled from Move bytecode v6
 }
 

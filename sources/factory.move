@@ -106,5 +106,32 @@ module tap::factory {
             }
         }
     }
+
+
+    #[test_only]
+    use aptos_framework::account;
+    #[test_only]
+    use aptos_framework::coin;
+
+    #[test_only]
+    fun init_module_for_test(): &signer {
+        let tap = &account::create_account_for_test(@tap);
+        init_module(tap);
+        tap
+    }
+
+    // #[test_only]
+    // fun
+
+    #[test]
+    fun create_pool_success() {
+        let signer = init_module_for_test();
+
+        coin::create_fake_money()
+
+        tap::clmm_router::init_clmm_acl(signer);
+        tap::clmm_router::add_fee_tier(signer, 60, 10000);
+        // tap::clmm_router::create_pool<>()
+    }
 }
 
