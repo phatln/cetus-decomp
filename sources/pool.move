@@ -996,33 +996,34 @@ module tap::pool {
     }
 
     public fun open_position<T0, T1>(
-        arg0: &signer,
-        arg1: address,
-        arg2: integer_mate::i64::I64,
-        arg3: integer_mate::i64::I64
+        signer: &signer,
+        pool_addr: address,
+        lower_tick_idx: integer_mate::i64::I64,
+        upper_tick_idx: integer_mate::i64::I64
     ): u64 acquires Pool {
-        assert!(integer_mate::i64::lt(arg2, arg3), 30);
-        let v0 = borrow_global_mut<Pool<T0, T1>>(arg1);
-        assert_status<T0, T1>(v0);
-        assert!(tap::tick_math::is_valid_index(arg2, v0.tick_spacing), 30);
-        assert!(tap::tick_math::is_valid_index(arg3, v0.tick_spacing), 30);
+        assert!(integer_mate::i64::lt(lower_tick_idx, upper_tick_idx), 30);
+        let pool = borrow_global_mut<Pool<T0, T1>>(pool_addr);
+        assert_status<T0, T1>(pool);
+        assert!(tap::tick_math::is_valid_index(lower_tick_idx, pool.tick_spacing), 30);
+        assert!(tap::tick_math::is_valid_index(upper_tick_idx, pool.tick_spacing), 30);
         0x1::table::add<u64, Position>(
-            &mut v0.positions,
-            v0.position_index,
-            new_empty_position(arg1, arg2, arg3, v0.position_index)
+            &mut pool.positions,
+            pool.position_index,
+            new_empty_position(pool_addr, lower_tick_idx, upper_tick_idx, pool.position_index)
         );
-        let v1 = 0x1::account::create_signer_with_capability(&v0.signer_cap);
+        // let v1 = 0x1::account::create_signer_with_capability(&v0.signer_cap);
         // tap::position_nft::mint(arg0, &v1, v0.index, v0.position_index, v0.uri, v0.collection_name);
-        let v2 = OpenPositionEvent {
-            user: 0x1::signer::address_of(arg0),
-            pool: arg1,
-            tick_lower: arg2,
-            tick_upper: arg3,
-            index: v0.position_index,
+        let event = OpenPositionEvent {
+            user: 0x1::signer::address_of(signer),
+            pool: pool_addr,
+            tick_lower: lower_tick_idx,
+            tick_upper: upper_tick_idx,
+            index: pool.position_index,
         };
-        0x1::event::emit(v2);
-        v0.position_index = v0.position_index + 1;
-        v0.position_index
+        0x1::event::emit(event);
+        let position_index = pool.position_index;
+        pool.position_index = pool.position_index + 1;
+        position_index
     }
 
     public fun pause<T0, T1>(arg0: &signer, arg1: address) acquires Pool {

@@ -1,4 +1,7 @@
 module tap::clmm_router {
+    #[test_only]
+    use std::debug::print;
+
     // public entry fun swap<T0, T1>(arg0: &signer, arg1: address, arg2: bool, arg3: bool, arg4: u64, arg5: u64, arg6: u128, arg7: 0x1::string::String) {
     //     let v0 = 0x1::signer::address_of(arg0);
     //     let (v1, v2, v3) = tap::pool::flash_swap<T0, T1>(arg1, v0, arg7, arg2, arg3, arg4, arg6);
