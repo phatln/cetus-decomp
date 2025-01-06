@@ -317,21 +317,21 @@ module tap::clmm_router {
     #[test_only]
     use std::string;
     #[test_only]
-    use aptos_std::type_info;
-    #[test_only]
-    use aptos_std::type_info::{type_name, type_of, struct_name};
+    use aptos_std::type_info::{type_of, struct_name};
     #[test_only]
     use aptos_framework::account;
     #[test_only]
-    use aptos_framework::coin::{initialize, create_coin_conversion_map, mint, deposit, BurnCapability, FreezeCapability,
-        MintCapability
+    use aptos_framework::coin::{initialize, mint, deposit, BurnCapability, FreezeCapability,
+        MintCapability, register
     };
     #[test_only]
-    use tap::factory::{PoolOwner, Pools};
+    use aptos_framework::timestamp;
 
     #[test_only]
     fun init_module_for_test(signer: &signer) {
         tap::factory::init_module_for_test(signer);
+        let aptos_account = account::create_account_for_test(@aptos_framework);
+        timestamp::set_time_has_started_for_testing(&aptos_account);
     }
 
     #[test_only]
@@ -362,6 +362,7 @@ module tap::clmm_router {
             decimals,
             false
         );
+        register<FakeMoney>(signer);
         let coins_minted = mint<FakeMoney>(amount, &mint_cap);
         deposit(signer::address_of(signer), coins_minted);
         move_to(signer, FakeMoneyCapabilities {
