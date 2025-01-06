@@ -4,9 +4,11 @@ version = "2.1.0"
 authors = []
 
 [addresses]
-tap= "_"
+tap = "_"
 
 [dev-addresses]
+tap = "0x3333"
+integer_mate = "0xc4fb1d925938d1499dfd1ae4e041d0377a9a761f6da0a3c18f12a8aad7810e6d"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-framework.git"

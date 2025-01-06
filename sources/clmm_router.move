@@ -118,9 +118,14 @@ module tap::clmm_router {
         is_open: bool,
         index: u64) {
         let pos_index = if (is_open) {
-            tap::pool::open_position<T0, T1>(signer, pool_addr, integer_mate::i64::from_u64(tick_lower), integer_mate::i64::from_u64(
-                tick_upper
-            ))
+            tap::pool::open_position<T0, T1>(
+                signer,
+                pool_addr,
+                integer_mate::i64::from_u64(tick_lower),
+                integer_mate::i64::from_u64(
+                    tick_upper
+                )
+            )
         } else {
             // tap::pool::check_position_authority<T0, T1>(signer, pool_addr, index);
             let (lower_index, upper_index) = tap::pool::get_position_tick_range<T0, T1>(pool_addr, index);
@@ -183,7 +188,15 @@ module tap::clmm_router {
     //     tap::pool::initialize_rewarder<T0, T1, T2>(arg0, arg1, arg2, arg3);
     // }
 
-    public entry fun remove_liquidity<T0, T1>(arg0: &signer, arg1: address, arg2: u128, arg3: u64, arg4: u64, arg5: u64, arg6: bool) {
+    public entry fun remove_liquidity<T0, T1>(
+        arg0: &signer,
+        arg1: address,
+        arg2: u128,
+        arg3: u64,
+        arg4: u64,
+        arg5: u64,
+        arg6: bool
+    ) {
         let (v0, v1) = tap::pool::remove_liquidity<T0, T1>(arg0, arg1, arg2, arg5);
         let v2 = v1;
         let v3 = v0;
@@ -229,9 +242,14 @@ module tap::clmm_router {
         is_open: bool,
         index: u64) {
         let pos_index = if (is_open) {
-            tap::pool::open_position<T0, T1>(signer, pool_addr, integer_mate::i64::from_u64(lower_tick_index), integer_mate::i64::from_u64(
-                upper_tick_index
-            ))
+            tap::pool::open_position<T0, T1>(
+                signer,
+                pool_addr,
+                integer_mate::i64::from_u64(lower_tick_index),
+                integer_mate::i64::from_u64(
+                    upper_tick_index
+                )
+            )
         } else {
             // tap::pool::check_position_authority<T0, T1>(signer, pool_addr, index);
             let (lower_index, upper_index) = tap::pool::get_position_tick_range<T0, T1>(pool_addr, index);
