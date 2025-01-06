@@ -312,5 +312,99 @@ module tap::clmm_router {
     //     tap::pool::update_emission<T0, T1, T2>(arg0, arg1, arg2, arg3);
     // }
 
+    #[test_only]
+    use std::signer;
+    #[test_only]
+    use std::string;
+    #[test_only]
+    use aptos_std::type_info;
+    #[test_only]
+    use aptos_std::type_info::{type_name, type_of, struct_name};
+    #[test_only]
+    use aptos_framework::account;
+    #[test_only]
+    use aptos_framework::coin::{initialize, create_coin_conversion_map, mint, deposit, BurnCapability, FreezeCapability,
+        MintCapability
+    };
+    #[test_only]
+    use tap::factory::{PoolOwner, Pools};
+
+    #[test_only]
+    fun init_module_for_test(signer: &signer) {
+        tap::factory::init_module_for_test(signer);
+    }
+
+    #[test_only]
+    struct CoinA {}
+
+    #[test_only]
+    struct CoinB {}
+
+    #[test_only]
+    struct FakeMoneyCapabilities<phantom FakeMoney> has key {
+        burn_cap: BurnCapability<FakeMoney>,
+        freeze_cap: FreezeCapability<FakeMoney>,
+        mint_cap: MintCapability<FakeMoney>,
+    }
+
+    #[test_only]
+    fun create_fake_money<FakeMoney>(
+        signer: &signer,
+        decimals: u8,
+        amount: u64,
+    ) {
+        let type_info = type_of<FakeMoney>();
+
+        let (burn_cap, freeze_cap, mint_cap) = initialize<FakeMoney>(
+            signer,
+            string::utf8(struct_name(&type_info)),
+            string::utf8(struct_name(&type_info)),
+            decimals,
+            false
+        );
+        let coins_minted = mint<FakeMoney>(amount, &mint_cap);
+        deposit(signer::address_of(signer), coins_minted);
+        move_to(signer, FakeMoneyCapabilities {
+            burn_cap,
+            freeze_cap,
+            mint_cap,
+        })
+    }
+
+    #[test_only]
+    fun create_pool_for_test<A, B>(
+        signer: &signer,
+        tick_spacing: u64,
+        curr_sqrt_price: u128
+    ): address {
+        tap::config::init_clmm_acl(signer);
+        tap::fee_tier::add_fee_tier(signer, 60, 10000);
+        tap::factory::create_pool<A, B>(signer, tick_spacing, curr_sqrt_price, string::utf8(b""))
+    }
+
+    #[test]
+    fun create_pool_success() {
+        let signer = &account::create_account_for_test(@tap);
+        init_module_for_test(signer);
+        create_pool_for_test<CoinA, CoinB>(signer, 60, 4234723218432753371);
+    }
+
+    #[test]
+    fun add_liquidity_pool_success() {
+        let signer = &account::create_account_for_test(@tap);
+        init_module_for_test(signer);
+        let pool_addr = create_pool_for_test<CoinA, CoinB>(signer, 60, 4234723218432753371);
+
+        create_fake_money<CoinA>(signer, 8, 1_000_000);
+        create_fake_money<CoinB>(signer, 8, 1_000_000);
+        add_liquidity_fix_token<CoinA, CoinB>(signer, pool_addr,
+            110341,
+            10155,
+            false,
+            18446744073709108036,
+            443580,
+            true,
+            0);
+    }
 }
 
