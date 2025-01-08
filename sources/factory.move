@@ -1,4 +1,10 @@
 module tap::factory {
+    use std::bcs::to_bytes;
+    use std::string::{length, utf8};
+    use aptos_std::simple_map::{contains_key, add};
+    use aptos_framework::account::create_resource_account;
+    use tap::tick_math::{min_sqrt_price, max_sqrt_price};
+
     #[event]
     struct CreatePoolEvent has drop, store {
         creator: address,
@@ -31,28 +37,34 @@ module tap::factory {
         pool_uri: 0x1::string::String
     ): address acquires PoolOwner, Pools {
         tap::config::assert_pool_create_authority(signer);
-        let v0 = if (0x1::string::length(&pool_uri) == 0 || !tap::config::allow_set_position_nft_uri(signer)) {
-            0x1::string::utf8(
+        let pool_uri = if (length(&pool_uri) == 0 || !tap::config::allow_set_position_nft_uri(signer)) {
+            utf8(
                 b"https://edbz27ws6curuggjavd2ojwm4td2se5x53elw2rbo3rwwnshkukq.arweave.net/IMOdftLwqRoYyQVHpybM5MepE7fuyLtqIXbjazZHVRU"
             )
         } else {
             pool_uri
         };
-        assert!(sqrt_price >= tap::tick_math::min_sqrt_price() && sqrt_price <= tap::tick_math::max_sqrt_price(), 2);
-        let v1 = new_pool_id<T0, T1>(tick_spacing);
-        let v2 = 0x1::account::create_signer_with_capability(&borrow_global<PoolOwner>(@tap).signer_capability);
-        let v3 = new_pool_seed<T0, T1>(tick_spacing);
-        let (v4, v5) = 0x1::account::create_resource_account(&v2, 0x1::bcs::to_bytes<PoolId>(&v3));
-        let v6 = v4;
-        let v7 = 0x1::signer::address_of(&v6);
+        assert!(sqrt_price >= min_sqrt_price() && sqrt_price <= max_sqrt_price(), 2);
+        let pool_id = new_pool_id<T0, T1>(tick_spacing);
+        let pool_owner = 0x1::account::create_signer_with_capability(&borrow_global<PoolOwner>(@tap).signer_capability);
+        let pool_seed = new_pool_seed<T0, T1>(tick_spacing);
+        let (pool_signer, v5) = create_resource_account(&pool_owner, to_bytes<PoolId>(&pool_seed));
+        let v7 = 0x1::signer::address_of(&pool_signer);
         let v8 = borrow_global_mut<Pools>(@tap);
         v8.index = v8.index + 1;
-        assert!(!0x1::simple_map::contains_key<PoolId, address>(&v8.data, &v1), 1);
-        0x1::simple_map::add<PoolId, address>(&mut v8.data, v1, v7);
+        assert!(!contains_key<PoolId, address>(&v8.data, &pool_id), 1);
+        add<PoolId, address>(&mut v8.data, pool_id, v7);
         let v9 = CreatePoolEvent {
             creator: 0x1::signer::address_of(signer),
             pool_address: v7,
-            position_collection_name: tap::pool::new<T0, T1>(&v6, tick_spacing, sqrt_price, v8.index, v0, v5),
+            position_collection_name: tap::pool::new<T0, T1>(
+                &pool_signer,
+                tick_spacing,
+                sqrt_price,
+                v8.index,
+                pool_uri,
+                v5
+            ),
             coin_type_a: 0x1::type_info::type_of<T0>(),
             coin_type_b: 0x1::type_info::type_of<T1>(),
             tick_spacing,

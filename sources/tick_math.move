@@ -1,5 +1,5 @@
 module tap::tick_math {
-    fun as_u8(arg0: bool) : u8 {
+    fun as_u8(arg0: bool): u8 {
         if (arg0) {
             1
         } else {
@@ -7,7 +7,7 @@ module tap::tick_math {
         }
     }
 
-    fun get_sqrt_price_at_negative_tick(arg0: integer_mate::i64::I64) : u128 {
+    fun get_sqrt_price_at_negative_tick(arg0: integer_mate::i64::I64): u128 {
         let v0 = integer_mate::i64::as_u64(integer_mate::i64::abs(arg0));
         let v1 = if (v0 & 1 != 0) {
             18445821805675392311
@@ -72,7 +72,7 @@ module tap::tick_math {
         v2
     }
 
-    fun get_sqrt_price_at_positive_tick(arg0: integer_mate::i64::I64) : u128 {
+    fun get_sqrt_price_at_positive_tick(arg0: integer_mate::i64::I64): u128 {
         let v0 = integer_mate::i64::as_u64(integer_mate::i64::abs(arg0));
         let v1 = if (v0 & 1 != 0) {
             79232123823359799118286999567
@@ -137,7 +137,7 @@ module tap::tick_math {
         v2 >> 32
     }
 
-    public fun get_sqrt_price_at_tick(arg0: integer_mate::i64::I64) : u128 {
+    public fun get_sqrt_price_at_tick(arg0: integer_mate::i64::I64): u128 {
         assert!(integer_mate::i64::gte(arg0, min_tick()) && integer_mate::i64::lte(arg0, max_tick()), 1);
         if (integer_mate::i64::is_neg(arg0)) {
             get_sqrt_price_at_negative_tick(arg0)
@@ -146,7 +146,7 @@ module tap::tick_math {
         }
     }
 
-    public fun get_tick_at_sqrt_price(arg0: u128) : integer_mate::i64::I64 {
+    public fun get_tick_at_sqrt_price(arg0: u128): integer_mate::i64::I64 {
         assert!(arg0 >= 4295048016 && arg0 <= 79226673515401279992447579055, 2);
         let v0 = as_u8(arg0 >= 18446744073709551616) << 6;
         let v1 = arg0 >> v0;
@@ -160,7 +160,10 @@ module tap::tick_math {
         let v9 = v7 >> v8;
         let v10 = as_u8(v9 >= 4) << 1;
         let v11 = 0 | v0 | v2 | v4 | v6 | v8 | v10 | as_u8(v9 >> v10 >= 2) << 0;
-        let v12 = integer_mate::i128::shl(integer_mate::i128::sub(integer_mate::i128::from((v11 as u128)), integer_mate::i128::from(64)), 32);
+        let v12 = integer_mate::i128::shl(
+            integer_mate::i128::sub(integer_mate::i128::from((v11 as u128)), integer_mate::i128::from(64)),
+            32
+        );
         let v13 = if (v11 >= 64) {
             arg0 >> v11 - 63
         } else {
@@ -176,8 +179,12 @@ module tap::tick_math {
             v15 = v15 - 1;
         };
         let v18 = integer_mate::i128::mul(v12, integer_mate::i128::from(59543866431366));
-        let v19 = integer_mate::i128::as_i64(integer_mate::i128::shr(integer_mate::i128::sub(v18, integer_mate::i128::from(184467440737095516)), 64));
-        let v20 = integer_mate::i128::as_i64(integer_mate::i128::shr(integer_mate::i128::add(v18, integer_mate::i128::from(15793534762490258745)), 64));
+        let v19 = integer_mate::i128::as_i64(
+            integer_mate::i128::shr(integer_mate::i128::sub(v18, integer_mate::i128::from(184467440737095516)), 64)
+        );
+        let v20 = integer_mate::i128::as_i64(
+            integer_mate::i128::shr(integer_mate::i128::add(v18, integer_mate::i128::from(15793534762490258745)), 64)
+        );
         if (integer_mate::i64::eq(v19, v20)) {
             return v19
         };
@@ -187,30 +194,40 @@ module tap::tick_math {
         v19
     }
 
-    public fun is_valid_index(arg0: integer_mate::i64::I64, arg1: u64) : bool {
-        integer_mate::i64::gte(arg0, min_tick()) && integer_mate::i64::lte(arg0, max_tick()) && integer_mate::i64::mod(arg0, integer_mate::i64::from(arg1)) == integer_mate::i64::from(0)
+    public fun is_valid_index(arg0: integer_mate::i64::I64, arg1: u64): bool {
+        integer_mate::i64::gte(arg0, min_tick()) && integer_mate::i64::lte(arg0, max_tick()) && integer_mate::i64::mod(
+            arg0,
+            integer_mate::i64::from(arg1)
+        ) == integer_mate::i64::from(0)
     }
 
-    public fun max_sqrt_price() : u128 {
+    public fun max_sqrt_price(): u128 {
         79226673515401279992447579055
     }
 
-    public fun max_tick() : integer_mate::i64::I64 {
+    public fun max_tick(): integer_mate::i64::I64 {
         integer_mate::i64::from(443636)
     }
 
-    public fun min_sqrt_price() : u128 {
+    public fun min_sqrt_price(): u128 {
         4295048016
     }
 
-    public fun min_tick() : integer_mate::i64::I64 {
+    public fun min_tick(): integer_mate::i64::I64 {
         integer_mate::i64::neg_from(443636)
     }
 
-    public fun tick_bound() : u64 {
+    public fun tick_bound(): u64 {
         443636
     }
 
-    // decompiled from Move bytecode v6
+    #[test_only]
+    use aptos_std::debug::print;
+
+    // #[test]
+    // fun test_max_tick_sqrt_price() {
+    //     print(&get_sqrt_price_at_negative_tick(min_tick()));
+    //     print(&get_sqrt_price_at_positive_tick(max_tick()));
+    // }
 }
 

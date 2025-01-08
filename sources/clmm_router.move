@@ -1,7 +1,4 @@
 module tap::clmm_router {
-    #[test_only]
-    use std::debug::print;
-
     // public entry fun swap<T0, T1>(arg0: &signer, arg1: address, arg2: bool, arg3: bool, arg4: u64, arg5: u64, arg6: u128, arg7: 0x1::string::String) {
     //     let v0 = 0x1::signer::address_of(arg0);
     //     let (v1, v2, v3) = tap::pool::flash_swap<T0, T1>(arg1, v0, arg7, arg2, arg3, arg4, arg6);
@@ -329,6 +326,8 @@ module tap::clmm_router {
     };
     #[test_only]
     use aptos_framework::timestamp;
+    #[test_only]
+    use tap::pool;
 
     #[test_only]
     fun init_module_for_test(signer: &signer) {
@@ -390,25 +389,33 @@ module tap::clmm_router {
     fun create_pool_success() {
         let signer = &account::create_account_for_test(@tap);
         init_module_for_test(signer);
-        create_pool_for_test<CoinA, CoinB>(signer, 60, 4234723218432753371);
+        create_pool_for_test<CoinA, CoinB>(signer, 60, 5919272212378807452);
     }
 
     #[test]
     fun add_liquidity_pool_success() {
         let signer = &account::create_account_for_test(@tap);
         init_module_for_test(signer);
-        let pool_addr = create_pool_for_test<CoinA, CoinB>(signer, 60, 4234723218432753371);
+        let pool_addr = create_pool_for_test<CoinA, CoinB>(signer, 60, 5919272212378807452);
 
-        create_fake_money<CoinA>(signer, 8, 1_000_000);
-        create_fake_money<CoinB>(signer, 8, 1_000_000);
+        create_fake_money<CoinA>(signer, 6, 1_000_000); // usdc
+        create_fake_money<CoinB>(signer, 8, 1_000_000); // aptos
         add_liquidity_fix_token<CoinA, CoinB>(signer, pool_addr,
-            110341,
+            98590,
             10155,
             false,
             18446744073709108036,
             443580,
+            // 18446744073709519876,
+            // 18446744073709536556,
             true,
             0);
+    }
+
+
+    #[test]
+    fun test_indexes() {
+        pool::test_indexes(10000);
     }
 }
 

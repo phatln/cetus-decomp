@@ -1,4 +1,17 @@
 module tap::pool {
+    use std::bit_vector::BitVector;
+    use std::option::{none, some};
+    use aptos_std::debug::print;
+    use aptos_std::string_utils::{format1, format4, format3};
+    use aptos_std::table::{contains, borrow};
+    use integer_mate::i64::{I64, sub, as_u64, add, is_neg, mod, from};
+    use tap::tick_math::{min_tick, max_tick};
+    use tap::utils::{print_i64, format_i64};
+    #[test_only]
+    use integer_mate::i64;
+    #[test_only]
+    use integer_mate::i64::{from_u64};
+
     #[event]
     struct AcceptRewardAuthEvent has drop, store {
         pool_address: address,
@@ -9,8 +22,8 @@ module tap::pool {
     #[event]
     struct AddLiquidityEvent has drop, store {
         pool_address: address,
-        tick_lower: integer_mate::i64::I64,
-        tick_upper: integer_mate::i64::I64,
+        tick_lower: I64,
+        tick_upper: I64,
         liquidity: u128,
         amount_a: u64,
         amount_b: u64,
@@ -80,8 +93,8 @@ module tap::pool {
     struct OpenPositionEvent has drop, store {
         user: address,
         pool: address,
-        tick_lower: integer_mate::i64::I64,
-        tick_upper: integer_mate::i64::I64,
+        tick_lower: I64,
+        tick_upper: I64,
         index: u64,
     }
 
@@ -94,13 +107,13 @@ module tap::pool {
         fee_rate: u64,
         liquidity: u128,
         current_sqrt_price: u128,
-        current_tick_index: integer_mate::i64::I64,
+        current_tick_index: I64,
         fee_growth_global_a: u128,
         fee_growth_global_b: u128,
         fee_protocol_coin_a: u64,
         fee_protocol_coin_b: u64,
         tick_indexes: 0x1::table::Table<u64, 0x1::bit_vector::BitVector>,
-        ticks: 0x1::table::Table<integer_mate::i64::I64, Tick>,
+        ticks: 0x1::table::Table<I64, Tick>,
         rewarder_infos: vector<Rewarder>,
         rewarder_last_updated_time: u64,
         positions: 0x1::table::Table<u64, Position>,
@@ -114,8 +127,8 @@ module tap::pool {
         pool: address,
         index: u64,
         liquidity: u128,
-        tick_lower_index: integer_mate::i64::I64,
-        tick_upper_index: integer_mate::i64::I64,
+        tick_lower_index: I64,
+        tick_upper_index: I64,
         fee_growth_inside_a: u128,
         fee_owed_a: u64,
         fee_growth_inside_b: u128,
@@ -131,8 +144,8 @@ module tap::pool {
     #[event]
     struct RemoveLiquidityEvent has drop, store {
         pool_address: address,
-        tick_lower: integer_mate::i64::I64,
-        tick_upper: integer_mate::i64::I64,
+        tick_lower: I64,
+        tick_upper: I64,
         liquidity: u128,
         amount_a: u64,
         amount_b: u64,
@@ -179,7 +192,7 @@ module tap::pool {
     }
 
     struct Tick has copy, drop, store {
-        index: integer_mate::i64::I64,
+        index: I64,
         sqrt_price: u128,
         liquidity_net: integer_mate::i128::I128,
         liquidity_gross: u128,
@@ -211,7 +224,7 @@ module tap::pool {
     }
 
     public fun new<T0, T1>(
-        arg0: &signer,
+        signer: &signer,
         arg1: u64,
         arg2: u128,
         arg3: u64,
@@ -225,7 +238,7 @@ module tap::pool {
         //     0x1::string::utf8(b"Cetus Liquidity Position"),
         //     arg4
         // );
-        let v1 = Pool<T0, T1> {
+        let pool = Pool<T0, T1> {
             index: arg3,
             collection_name: 0x1::string::utf8(b"Pool"),
             coin_a: 0x1::coin::zero<T0>(),
@@ -240,7 +253,7 @@ module tap::pool {
             fee_protocol_coin_a: 0,
             fee_protocol_coin_b: 0,
             tick_indexes: 0x1::table::new<u64, 0x1::bit_vector::BitVector>(),
-            ticks: 0x1::table::new<integer_mate::i64::I64, Tick>(),
+            ticks: 0x1::table::new<I64, Tick>(),
             rewarder_infos: 0x1::vector::empty<Rewarder>(),
             rewarder_last_updated_time: 0,
             positions: 0x1::table::new<u64, Position>(),
@@ -249,8 +262,8 @@ module tap::pool {
             uri: arg4,
             signer_cap: arg5,
         };
-        move_to<Pool<T0, T1>>(arg0, v1);
-        0x3::token::initialize_token_store(arg0);
+        move_to<Pool<T0, T1>>(signer, pool);
+        0x3::token::initialize_token_store(signer);
         // tap::position_nft::mint(arg0, arg0, arg3, 0, arg4, v0);
         // v0
         0x1::string::utf8(b"PoolCreated")
@@ -330,7 +343,10 @@ module tap::pool {
         update_position_liquidity(position, delta_liquidity, true);
         upsert_tick_by_liquidity<T0, T1>(pool, lower_index, delta_liquidity, true, false);
         upsert_tick_by_liquidity<T0, T1>(pool, upper_index, delta_liquidity, true, true);
-        let (new_liquidity, overflow) = if (integer_mate::i64::gte(pool.current_tick_index, lower_index) && integer_mate::i64::lt(
+        let (new_liquidity, overflow) = if (integer_mate::i64::gte(
+            pool.current_tick_index,
+            lower_index
+        ) && integer_mate::i64::lt(
             pool.current_tick_index,
             upper_index
         )) {
@@ -366,31 +382,31 @@ module tap::pool {
 
     fun borrow_mut_tick_with_default(
         arg0: &mut 0x1::table::Table<u64, 0x1::bit_vector::BitVector>,
-        arg1: &mut 0x1::table::Table<integer_mate::i64::I64, Tick>,
+        arg1: &mut 0x1::table::Table<I64, Tick>,
         arg2: u64,
-        arg3: integer_mate::i64::I64
+        arg3: I64
     ): &mut Tick {
         let (v0, v1) = tick_position(arg3, arg2);
         if (!0x1::table::contains<u64, 0x1::bit_vector::BitVector>(arg0, v0)) {
             0x1::table::add<u64, 0x1::bit_vector::BitVector>(arg0, v0, 0x1::bit_vector::new(1000));
         };
         0x1::bit_vector::set(0x1::table::borrow_mut<u64, 0x1::bit_vector::BitVector>(arg0, v0), v1);
-        if (!0x1::table::contains<integer_mate::i64::I64, Tick>(arg1, arg3)) {
-            0x1::table::borrow_mut_with_default<integer_mate::i64::I64, Tick>(arg1, arg3, default_tick(arg3))
+        if (!0x1::table::contains<I64, Tick>(arg1, arg3)) {
+            0x1::table::borrow_mut_with_default<I64, Tick>(arg1, arg3, default_tick(arg3))
         } else {
-            0x1::table::borrow_mut<integer_mate::i64::I64, Tick>(arg1, arg3)
+            0x1::table::borrow_mut<I64, Tick>(arg1, arg3)
         }
     }
 
-    fun borrow_tick<T0, T1>(pool: &Pool<T0, T1>, arg1: integer_mate::i64::I64): 0x1::option::Option<Tick> {
-        let (v0, _) = tick_position(arg1, pool.tick_spacing);
-        if (!0x1::table::contains<u64, 0x1::bit_vector::BitVector>(&pool.tick_indexes, v0)) {
-            return 0x1::option::none<Tick>()
+    fun borrow_tick<T0, T1>(pool: &Pool<T0, T1>, tick_idx: I64): 0x1::option::Option<Tick> {
+        let (v0, _) = tick_position(tick_idx, pool.tick_spacing);
+        if (!contains<u64, BitVector>(&pool.tick_indexes, v0)) {
+            return none<Tick>()
         };
-        if (!0x1::table::contains<integer_mate::i64::I64, Tick>(&pool.ticks, arg1)) {
-            return 0x1::option::none<Tick>()
+        if (!contains<I64, Tick>(&pool.ticks, tick_idx)) {
+            return none<Tick>()
         };
-        0x1::option::some<Tick>(*0x1::table::borrow<integer_mate::i64::I64, Tick>(&pool.ticks, arg1))
+        some<Tick>(*borrow<I64, Tick>(&pool.ticks, tick_idx))
     }
 
     // public fun calculate_swap_result<T0, T1>(arg0: address, arg1: bool, arg2: bool, arg3: u64) : CalculatedSwapResult acquires Pool {
@@ -527,7 +543,7 @@ module tap::pool {
             v2 = v2 + 1;
         };
         0x1::table::remove<u64, Position>(&mut v0.positions, arg2);
-        let v3 = 0x1::account::create_signer_with_capability(&v0.signer_cap);
+        let _v3 = 0x1::account::create_signer_with_capability(&v0.signer_cap);
         let v4 = 0x1::signer::address_of(arg0);
         // tap::position_nft::burn(&v3, v4, v0.collection_name, v0.index, arg2);
         let v5 = ClosePositionEvent {
@@ -664,7 +680,7 @@ module tap::pool {
     //     }
     // }
 
-    fun default_tick(arg0: integer_mate::i64::I64): Tick {
+    fun default_tick(arg0: I64): Tick {
         Tick {
             index: arg0,
             sqrt_price: tap::tick_math::get_sqrt_price_at_tick(arg0),
@@ -691,29 +707,34 @@ module tap::pool {
     }
 
     public fun fetch_ticks<T0, T1>(
-        arg0: address,
+        pool_addr: address,
         arg1: u64,
         arg2: u64,
         arg3: u64
     ): (u64, u64, vector<Tick>) acquires Pool {
-        let v0 = borrow_global_mut<Pool<T0, T1>>(arg0);
-        let v1 = v0.tick_spacing;
+        let pool = borrow_global_mut<Pool<T0, T1>>(pool_addr);
+        let tick_spacing = pool.tick_spacing;
         let v2 = arg1;
         let v3 = 0x1::vector::empty<Tick>();
         let v4 = arg2;
         let v5 = 0;
-        while (v2 >= 0 && v2 <= tick_indexes_max(v1)) {
-            if (0x1::table::contains<u64, 0x1::bit_vector::BitVector>(&v0.tick_indexes, v2)) {
-                let v6 = 0x1::table::borrow<u64, 0x1::bit_vector::BitVector>(&v0.tick_indexes, v2);
+        while (v2 >= 0 && v2 <= tick_indexes_max(tick_spacing)) {
+            if (0x1::table::contains<u64, 0x1::bit_vector::BitVector>(&pool.tick_indexes, v2)) {
+                let v6 = 0x1::table::borrow<u64, 0x1::bit_vector::BitVector>(&pool.tick_indexes, v2);
                 while (v4 >= 0 && v4 < 1000) {
                     if (0x1::bit_vector::is_index_set(v6, v4)) {
                         let v7 = v5 + 1;
                         v5 = v7;
                         0x1::vector::push_back<Tick>(
                             &mut v3,
-                            *0x1::table::borrow<integer_mate::i64::I64, Tick>(
-                                &v0.ticks,
-                                integer_mate::i64::sub(integer_mate::i64::from((1000 * v2 + v4) * v1), tick_max(v1))
+                            *0x1::table::borrow<I64, Tick>(
+                                &pool.ticks,
+                                integer_mate::i64::sub(
+                                    integer_mate::i64::from((1000 * v2 + v4) * tick_spacing),
+                                    tick_max(
+                                        tick_spacing
+                                    )
+                                )
                             )
                         );
                         if (v7 == arg3) {
@@ -769,9 +790,11 @@ module tap::pool {
 
     fun get_fee_in_tick_range<T0, T1>(
         pool: &Pool<T0, T1>,
-        lower_index: integer_mate::i64::I64,
-        upper_index: integer_mate::i64::I64
+        lower_index: I64,
+        upper_index: I64
     ): (u128, u128) {
+        print_i64(lower_index);
+        print_i64(upper_index);
         let lower_tick = borrow_tick<T0, T1>(pool, lower_index);
         let upper_tick = borrow_tick<T0, T1>(pool, upper_index);
         let current_tick = pool.current_tick_index;
@@ -871,7 +894,7 @@ module tap::pool {
     public fun get_position_tick_range<T0, T1>(
         arg0: address,
         arg1: u64
-    ): (integer_mate::i64::I64, integer_mate::i64::I64) acquires Pool {
+    ): (I64, I64) acquires Pool {
         let v0 = borrow_global<Pool<T0, T1>>(arg0);
         if (!0x1::table::contains<u64, Position>(&v0.positions, arg1)) {
             abort 29
@@ -881,20 +904,19 @@ module tap::pool {
     }
 
     public fun get_position_tick_range_by_pool<T0, T1>(
-        arg0: &Pool<T0, T1>,
-        arg1: u64
-    ): (integer_mate::i64::I64, integer_mate::i64::I64) {
-        if (!0x1::table::contains<u64, Position>(&arg0.positions, arg1)) {
+        pool: &Pool<T0, T1>,
+        position_idx: u64): (I64, I64) {
+        if (!contains<u64, Position>(&pool.positions, position_idx)) {
             abort 29
         };
-        let v0 = 0x1::table::borrow<u64, Position>(&arg0.positions, arg1);
-        (v0.tick_lower_index, v0.tick_upper_index)
+        let position = borrow<u64, Position>(&pool.positions, position_idx);
+        (position.tick_lower_index, position.tick_upper_index)
     }
 
     fun get_reward_in_tick_range<T0, T1>(
         arg0: &Pool<T0, T1>,
-        arg1: integer_mate::i64::I64,
-        arg2: integer_mate::i64::I64
+        arg1: I64,
+        arg2: I64
     ): vector<u128> {
         let v0 = borrow_tick<T0, T1>(arg0, arg1);
         let v1 = borrow_tick<T0, T1>(arg0, arg2);
@@ -963,7 +985,12 @@ module tap::pool {
     //     };
     // }
 
-    fun new_empty_position(arg0: address, arg1: integer_mate::i64::I64, arg2: integer_mate::i64::I64, arg3: u64): Position {
+    fun new_empty_position(
+        arg0: address,
+        arg1: I64,
+        arg2: I64,
+        arg3: u64
+    ): Position {
         let v0 = PositionRewarder {
             growth_inside: 0,
             amount_owed: 0,
@@ -998,8 +1025,8 @@ module tap::pool {
     public fun open_position<T0, T1>(
         signer: &signer,
         pool_addr: address,
-        lower_tick_idx: integer_mate::i64::I64,
-        upper_tick_idx: integer_mate::i64::I64
+        lower_tick_idx: I64,
+        upper_tick_idx: I64
     ): u64 acquires Pool {
         assert!(integer_mate::i64::lt(lower_tick_idx, upper_tick_idx), 30);
         let pool = borrow_global_mut<Pool<T0, T1>>(pool_addr);
@@ -1033,7 +1060,7 @@ module tap::pool {
     }
 
     public fun remove_liquidity<T0, T1>(
-        arg0: &signer,
+        signer: &signer,
         arg1: address,
         arg2: u128,
         arg3: u64
@@ -1059,7 +1086,10 @@ module tap::pool {
             arg2,
             false
         );
-        let (v8, v9) = if (integer_mate::i64::lte(v1, v0.current_tick_index) && integer_mate::i64::lt(v0.current_tick_index, v2)) {
+        let (v8, v9) = if (integer_mate::i64::lte(v1, v0.current_tick_index) && integer_mate::i64::lt(
+            v0.current_tick_index,
+            v2
+        )) {
             integer_mate::math_u128::overflowing_sub(v0.liquidity, arg2)
         } else {
             (v0.liquidity, false)
@@ -1081,16 +1111,16 @@ module tap::pool {
         (0x1::coin::extract<T0>(&mut v0.coin_a, v6), 0x1::coin::extract<T1>(&mut v0.coin_b, v7))
     }
 
-    fun remove_tick<T0, T1>(arg0: &mut Pool<T0, T1>, arg1: integer_mate::i64::I64) {
+    fun remove_tick<T0, T1>(arg0: &mut Pool<T0, T1>, arg1: I64) {
         let (v0, v1) = tick_position(arg1, arg0.tick_spacing);
         if (!0x1::table::contains<u64, 0x1::bit_vector::BitVector>(&arg0.tick_indexes, v0)) {
             abort 9
         };
         0x1::bit_vector::unset(0x1::table::borrow_mut<u64, 0x1::bit_vector::BitVector>(&mut arg0.tick_indexes, v0), v1);
-        if (!0x1::table::contains<integer_mate::i64::I64, Tick>(&arg0.ticks, arg1)) {
+        if (!0x1::table::contains<I64, Tick>(&arg0.ticks, arg1)) {
             abort 10
         };
-        0x1::table::remove<integer_mate::i64::I64, Tick>(&mut arg0.ticks, arg1);
+        0x1::table::remove<I64, Tick>(&mut arg0.ticks, arg1);
     }
 
     public fun repay_add_liquidity<T0, T1>(
@@ -1221,35 +1251,75 @@ module tap::pool {
     //     arg0.pay_amount
     // }
 
-    fun tick_indexes_index(arg0: integer_mate::i64::I64, arg1: u64): u64 {
-        let v0 = integer_mate::i64::sub(arg0, tick_min(arg1));
-        if (integer_mate::i64::is_neg(v0)) {
+    /// Determines given index belongs to which tick group.
+    /// Tick group is devided by tick spacing and multiply by 1000.
+    fun tick_indexes_index(index: I64, spacing: u64): u64 {
+        // This step ensures that the tick index is centered
+        // or adjusted relative to the minimum allowable tick for the given spacing.
+        let normalized_idx = integer_mate::i64::add(index, tick_max(spacing));
+        if (integer_mate::i64::is_neg(normalized_idx)) {
             abort 1
         };
-        integer_mate::i64::as_u64(v0) / arg1 * 1000
+        as_u64(normalized_idx) / spacing * 1000
     }
 
-    fun tick_indexes_max(arg0: u64): u64 {
-        tap::tick_math::tick_bound() * 2 / arg0 * 1000 + 1
+    fun tick_indexes_max(spacing: u64): u64 {
+        tap::tick_math::tick_bound() * 2 / spacing + 1
     }
 
-    fun tick_max(arg0: u64): integer_mate::i64::I64 {
-        let v0 = tap::tick_math::max_tick();
-        integer_mate::i64::sub(v0, integer_mate::i64::mod(v0, integer_mate::i64::from(arg0)))
+    fun tick_max(spacing: u64): I64 {
+        let max_tick = tap::tick_math::max_tick();
+        integer_mate::i64::sub(
+            max_tick,
+            integer_mate::i64::mod(
+                max_tick,
+                integer_mate::i64::from(spacing)
+            )
+        )
     }
 
-    fun tick_min(arg0: u64): integer_mate::i64::I64 {
-        let v0 = tap::tick_math::min_tick();
-        integer_mate::i64::sub(v0, integer_mate::i64::mod(v0, integer_mate::i64::from(arg0)))
+    fun tick_min(spacing: u64): I64 {
+        let min_tick = tap::tick_math::min_tick();
+        integer_mate::i64::sub(
+            min_tick,
+            integer_mate::i64::mod(
+                min_tick,
+                integer_mate::i64::from(spacing)
+            )
+        )
     }
 
-    fun tick_offset(arg0: u64, arg1: u64, arg2: integer_mate::i64::I64): u64 {
-        (integer_mate::i64::as_u64(integer_mate::i64::add(arg2, tick_max(arg1))) - arg0 * arg1 * 1000) / arg1
+    fun tick_offset(tick_group: u64, spacing: u64, arg2: I64): u64 {
+        (integer_mate::i64::as_u64(
+            integer_mate::i64::add(
+                arg2,
+                tick_max(spacing))) - tick_group * spacing * 1000
+        ) / spacing
     }
 
-    fun tick_position(arg0: integer_mate::i64::I64, arg1: u64): (u64, u64) {
-        let v0 = tick_indexes_index(arg0, arg1);
-        (v0, (integer_mate::i64::as_u64(integer_mate::i64::add(arg0, tick_max(arg1))) - v0 * arg1 * 1000) / arg1)
+    /// The tick_position function determines:
+    ///
+    /// - Which tick group the index belongs to (normalized_idx): Useful for organizing ticks into discrete buckets or ranges.
+    /// - Where the tick lies within that group (offset): Useful for fine-grained operations like adjusting liquidity or price points within the spacing range.
+    fun tick_position(index: I64, spacing: u64): (u64, u64) {
+        let normalized_idx = tick_indexes_index(index, spacing);
+
+        let idx_plus_tick_max = integer_mate::i64::add(index, tick_max(spacing));
+
+        print(&format4(&b"idx={} normalized_idx={} idx+tick_max_u64={}       {}",
+            format_i64(index),
+            normalized_idx,
+            as_u64(idx_plus_tick_max),
+            // (as_u64(idx_plus_tick_max) - normalized_idx * spacing * 1000) / spacing,
+            b"",
+        ));
+        // print(&format1(&b"normalized_idx={}", normalized_idx));
+        // print(&format1(&b"idx+tick_max={}", format_i64(idx_plus_tick_max)));
+        // print(&format1(&b"idx+tick_max_u64={}", as_u64(idx_plus_tick_max)));
+
+        (normalized_idx, (integer_mate::i64::as_u64(
+            integer_mate::i64::add(index, tick_max(spacing))
+        ) - normalized_idx * spacing * 1000) / spacing)
     }
 
     // public fun transfer_rewarder_authority<T0, T1>(
@@ -1461,7 +1531,7 @@ module tap::pool {
 
     fun upsert_tick_by_liquidity<T0, T1>(
         arg0: &mut Pool<T0, T1>,
-        arg1: integer_mate::i64::I64,
+        arg1: I64,
         arg2: u128,
         arg3: bool,
         arg4: bool
@@ -1517,6 +1587,22 @@ module tap::pool {
         v2.rewarders_growth_outside = v7;
     }
 
-    // decompiled from Move bytecode v6
+    #[test_only]
+    public fun test_indexes(spacing: u64) {
+        let steps: u64 = 0;
+        let curr_index: I64 = tick_min(spacing);
+        // let curr_index: I64 = tick_max(spacing);
+        while (steps < 100) {
+            let (tick_indexes_idx, offset) = tick_position(curr_index, spacing);
+            // print(&format3(&b"idx{} group_idx{} offset{}",
+            //     format_i64(&curr_index),
+            //     tick_indexes_idx,
+            //     offset,
+            // ));
+
+            curr_index = i64::add(curr_index, from_u64(spacing));
+            steps = steps + 1;
+        }
+    }
 }
 
