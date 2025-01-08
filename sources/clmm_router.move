@@ -406,16 +406,13 @@ module tap::clmm_router {
             false,
             18446744073709108036,
             443580,
-            // 18446744073709519876,
-            // 18446744073709536556,
             true,
             0);
     }
 
-
     #[test]
     fun test_indexes() {
-        pool::test_indexes(10000);
+        pool::test_indexes(100);
     }
 }
 

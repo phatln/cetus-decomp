@@ -4,13 +4,13 @@ module tap::pool {
     use aptos_std::debug::print;
     use aptos_std::string_utils::{format1, format4, format3};
     use aptos_std::table::{contains, borrow};
-    use integer_mate::i64::{I64, sub, as_u64, add, is_neg, mod, from};
+    use integer_mate::i64::{I64, sub, as_u64, add, is_neg, mod, from, div};
     use tap::tick_math::{min_tick, max_tick};
     use tap::utils::{print_i64, format_i64};
     #[test_only]
     use integer_mate::i64;
     #[test_only]
-    use integer_mate::i64::{from_u64};
+    use integer_mate::i64::{from_u64, lte};
 
     #[event]
     struct AcceptRewardAuthEvent has drop, store {
@@ -833,44 +833,54 @@ module tap::pool {
             pool.fee_growth_global_b, v4), v7))
     }
 
-    // fun get_next_tick_for_swap<T0, T1>(arg0: &Pool<T0, T1>, arg1: integer_mate::i64::I64, arg2: bool, arg3: integer_mate::i64::I64) : 0x1::option::Option<Tick> {
-    //     let v0 = arg0.tick_spacing;
-    //     let (v1, v2) = tick_position(arg1, v0);
-    //     let v3 = v2;
-    //     let v4 = v1;
-    //     if (!arg2) {
-    //         v3 = v2 + 1;
-    //     };
-    //     while (v4 >= 0 && v4 <= tick_indexes_max(v0)) {
-    //         if (0x1::table::contains<u64, 0x1::bit_vector::BitVector>(&arg0.tick_indexes, v4)) {
-    //             let v5 = 0x1::table::borrow<u64, 0x1::bit_vector::BitVector>(&arg0.tick_indexes, v4);
-    //             while (v3 >= 0 && v3 < 1000) {
-    //                 if (0x1::bit_vector::is_index_set(v5, v3)) {
-    //                     return 0x1::option::some<Tick>(*0x1::table::borrow<integer_mate::i64::I64, Tick>(&arg0.ticks, integer_mate::i64::sub(integer_mate::i64::from((1000 * v4 + v3) * v0), arg3)))
-    //                 };
-    //                 if (arg2) {
-    //                     if (v3 == 0) {
-    //                         break
-    //                     };
-    //                     v3 = v3 - 1;
-    //                     continue
-    //                 };
-    //                 v3 = v3 + 1;
-    //             };
-    //         };
-    //         if (arg2) {
-    //             if (v4 == 0) {
-    //                 return 0x1::option::none<Tick>()
-    //             };
-    //             v3 = 1000 - 1;
-    //             v4 = v4 - 1;
-    //             continue
-    //         };
-    //         v3 = 0;
-    //         v4 = v4 + 1;
-    //     };
-    //     0x1::option::none<Tick>()
-    // }
+    fun get_next_tick_for_swap<T0, T1>(
+        arg0: &Pool<T0, T1>,
+        arg1: integer_mate::i64::I64,
+        arg2: bool,
+        arg3: integer_mate::i64::I64
+    ): 0x1::option::Option<Tick> {
+        let v0 = arg0.tick_spacing;
+        let (v1, v2) = tick_position(arg1, v0);
+        let v3 = v2;
+        let v4 = v1;
+        if (!arg2) {
+            v3 = v2 + 1;
+        };
+        while (v4 >= 0 && v4 <= tick_indexes_max(v0)) {
+            if (0x1::table::contains<u64, 0x1::bit_vector::BitVector>(&arg0.tick_indexes, v4)) {
+                let v5 = 0x1::table::borrow<u64, 0x1::bit_vector::BitVector>(&arg0.tick_indexes, v4);
+                while (v3 >= 0 && v3 < 1000) {
+                    if (0x1::bit_vector::is_index_set(v5, v3)) {
+                        return 0x1::option::some<Tick>(
+                            *0x1::table::borrow<integer_mate::i64::I64, Tick>(
+                                &arg0.ticks,
+                                integer_mate::i64::sub(integer_mate::i64::from((1000 * v4 + v3) * v0), arg3)
+                            )
+                        )
+                    };
+                    if (arg2) {
+                        if (v3 == 0) {
+                            break
+                        };
+                        v3 = v3 - 1;
+                        continue
+                    };
+                    v3 = v3 + 1;
+                };
+            };
+            if (arg2) {
+                if (v4 == 0) {
+                    return 0x1::option::none<Tick>()
+                };
+                v3 = 1000 - 1;
+                v4 = v4 - 1;
+                continue
+            };
+            v3 = 0;
+            v4 = v4 + 1;
+        };
+        0x1::option::none<Tick>()
+    }
 
     public fun get_pool_index<T0, T1>(arg0: address): u64 acquires Pool {
         borrow_global<Pool<T0, T1>>(arg0).index
@@ -1256,11 +1266,11 @@ module tap::pool {
     fun tick_indexes_index(index: I64, spacing: u64): u64 {
         // This step ensures that the tick index is centered
         // or adjusted relative to the minimum allowable tick for the given spacing.
-        let normalized_idx = integer_mate::i64::add(index, tick_max(spacing));
-        if (integer_mate::i64::is_neg(normalized_idx)) {
+        let normalized_idx = add(index, tick_max(spacing));
+        if (is_neg(normalized_idx)) {
             abort 1
         };
-        as_u64(normalized_idx) / spacing * 1000
+        as_u64(normalized_idx) / (spacing * 1000)
     }
 
     fun tick_indexes_max(spacing: u64): u64 {
@@ -1289,37 +1299,22 @@ module tap::pool {
         )
     }
 
-    fun tick_offset(tick_group: u64, spacing: u64, arg2: I64): u64 {
+    fun tick_offset(ticks_group: u64, spacing: u64, arg2: I64): u64 {
         (integer_mate::i64::as_u64(
             integer_mate::i64::add(
                 arg2,
-                tick_max(spacing))) - tick_group * spacing * 1000
+                tick_max(spacing))) - (ticks_group * spacing * 1000)
         ) / spacing
     }
 
-    /// The tick_position function determines:
-    ///
-    /// - Which tick group the index belongs to (normalized_idx): Useful for organizing ticks into discrete buckets or ranges.
-    /// - Where the tick lies within that group (offset): Useful for fine-grained operations like adjusting liquidity or price points within the spacing range.
     fun tick_position(index: I64, spacing: u64): (u64, u64) {
-        let normalized_idx = tick_indexes_index(index, spacing);
+        let ticks_group = tick_indexes_index(index, spacing);
+        let offset = (
+            as_u64(add(index, tick_max(spacing))) -
+                (ticks_group * spacing * 1000)
+        ) / spacing;
 
-        let idx_plus_tick_max = integer_mate::i64::add(index, tick_max(spacing));
-
-        print(&format4(&b"idx={} normalized_idx={} idx+tick_max_u64={}       {}",
-            format_i64(index),
-            normalized_idx,
-            as_u64(idx_plus_tick_max),
-            // (as_u64(idx_plus_tick_max) - normalized_idx * spacing * 1000) / spacing,
-            b"",
-        ));
-        // print(&format1(&b"normalized_idx={}", normalized_idx));
-        // print(&format1(&b"idx+tick_max={}", format_i64(idx_plus_tick_max)));
-        // print(&format1(&b"idx+tick_max_u64={}", as_u64(idx_plus_tick_max)));
-
-        (normalized_idx, (integer_mate::i64::as_u64(
-            integer_mate::i64::add(index, tick_max(spacing))
-        ) - normalized_idx * spacing * 1000) / spacing)
+        (ticks_group, offset)
     }
 
     // public fun transfer_rewarder_authority<T0, T1>(
@@ -1592,16 +1587,9 @@ module tap::pool {
         let steps: u64 = 0;
         let curr_index: I64 = tick_min(spacing);
         // let curr_index: I64 = tick_max(spacing);
-        while (steps < 100) {
+        while (lte(curr_index, tick_max(spacing))) {
             let (tick_indexes_idx, offset) = tick_position(curr_index, spacing);
-            // print(&format3(&b"idx{} group_idx{} offset{}",
-            //     format_i64(&curr_index),
-            //     tick_indexes_idx,
-            //     offset,
-            // ));
-
             curr_index = i64::add(curr_index, from_u64(spacing));
-            steps = steps + 1;
         }
     }
 }
