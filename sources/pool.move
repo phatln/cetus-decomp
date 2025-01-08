@@ -1,16 +1,87 @@
 module tap::pool {
     use std::bit_vector::BitVector;
     use std::option::{none, some};
-    use aptos_std::debug::print;
-    use aptos_std::string_utils::{format1, format4, format3};
     use aptos_std::table::{contains, borrow};
-    use integer_mate::i64::{I64, sub, as_u64, add, is_neg, mod, from, div};
+    use integer_mate::i64::{I64, as_u64, add, is_neg};
     use tap::tick_math::{min_tick, max_tick};
-    use tap::utils::{print_i64, format_i64};
-    #[test_only]
-    use integer_mate::i64;
-    #[test_only]
-    use integer_mate::i64::{from_u64, lte};
+
+    struct Pool<phantom T0, phantom T1> has key {
+        index: u64,
+        collection_name: 0x1::string::String,
+        coin_a: 0x1::coin::Coin<T0>,
+        coin_b: 0x1::coin::Coin<T1>,
+        tick_spacing: u64,
+        fee_rate: u64,
+        liquidity: u128,
+        current_sqrt_price: u128,
+        current_tick_index: I64,
+        fee_growth_global_a: u128,
+        fee_growth_global_b: u128,
+        fee_protocol_coin_a: u64,
+        fee_protocol_coin_b: u64,
+        tick_indexes: 0x1::table::Table<u64, 0x1::bit_vector::BitVector>,
+        ticks: 0x1::table::Table<I64, Tick>,
+        rewarder_infos: vector<Rewarder>,
+        rewarder_last_updated_time: u64,
+        positions: 0x1::table::Table<u64, Position>,
+        position_index: u64,
+        is_pause: bool,
+        uri: 0x1::string::String,
+        signer_cap: 0x1::account::SignerCapability,
+    }
+
+    struct Position has copy, drop, store {
+        pool: address,
+        index: u64,
+        liquidity: u128,
+        tick_lower_index: I64,
+        tick_upper_index: I64,
+        fee_growth_inside_a: u128,
+        fee_owed_a: u64,
+        fee_growth_inside_b: u128,
+        fee_owed_b: u64,
+        rewarder_infos: vector<PositionRewarder>,
+    }
+
+    struct PositionRewarder has copy, drop, store {
+        growth_inside: u128,
+        amount_owed: u64,
+    }
+
+    struct Rewarder has copy, drop, store {
+        coin_type: 0x1::type_info::TypeInfo,
+        authority: address,
+        pending_authority: address,
+        emissions_per_second: u128,
+        growth_global: u128,
+    }
+
+    struct SwapResult has copy, drop {
+        amount_in: u64,
+        amount_out: u64,
+        fee_amount: u64,
+        ref_fee_amount: u64,
+    }
+
+    struct SwapStepResult has copy, drop, store {
+        current_sqrt_price: u128,
+        target_sqrt_price: u128,
+        current_liquidity: u128,
+        amount_in: u64,
+        amount_out: u64,
+        fee_amount: u64,
+        remainer_amount: u64,
+    }
+
+    struct Tick has copy, drop, store {
+        index: I64,
+        sqrt_price: u128,
+        liquidity_net: integer_mate::i128::I128,
+        liquidity_gross: u128,
+        fee_growth_outside_a: u128,
+        fee_growth_outside_b: u128,
+        rewarders_growth_outside: vector<u128>,
+    }
 
     #[event]
     struct AcceptRewardAuthEvent has drop, store {
@@ -98,49 +169,6 @@ module tap::pool {
         index: u64,
     }
 
-    struct Pool<phantom T0, phantom T1> has key {
-        index: u64,
-        collection_name: 0x1::string::String,
-        coin_a: 0x1::coin::Coin<T0>,
-        coin_b: 0x1::coin::Coin<T1>,
-        tick_spacing: u64,
-        fee_rate: u64,
-        liquidity: u128,
-        current_sqrt_price: u128,
-        current_tick_index: I64,
-        fee_growth_global_a: u128,
-        fee_growth_global_b: u128,
-        fee_protocol_coin_a: u64,
-        fee_protocol_coin_b: u64,
-        tick_indexes: 0x1::table::Table<u64, 0x1::bit_vector::BitVector>,
-        ticks: 0x1::table::Table<I64, Tick>,
-        rewarder_infos: vector<Rewarder>,
-        rewarder_last_updated_time: u64,
-        positions: 0x1::table::Table<u64, Position>,
-        position_index: u64,
-        is_pause: bool,
-        uri: 0x1::string::String,
-        signer_cap: 0x1::account::SignerCapability,
-    }
-
-    struct Position has copy, drop, store {
-        pool: address,
-        index: u64,
-        liquidity: u128,
-        tick_lower_index: I64,
-        tick_upper_index: I64,
-        fee_growth_inside_a: u128,
-        fee_owed_a: u64,
-        fee_growth_inside_b: u128,
-        fee_owed_b: u64,
-        rewarder_infos: vector<PositionRewarder>,
-    }
-
-    struct PositionRewarder has copy, drop, store {
-        growth_inside: u128,
-        amount_owed: u64,
-    }
-
     #[event]
     struct RemoveLiquidityEvent has drop, store {
         pool_address: address,
@@ -150,14 +178,6 @@ module tap::pool {
         amount_a: u64,
         amount_b: u64,
         index: u64,
-    }
-
-    struct Rewarder has copy, drop, store {
-        coin_type: 0x1::type_info::TypeInfo,
-        authority: address,
-        pending_authority: address,
-        emissions_per_second: u128,
-        growth_global: u128,
     }
 
     #[event]
@@ -172,33 +192,6 @@ module tap::pool {
         fee_amount: u64,
         vault_a_amount: u64,
         vault_b_amount: u64,
-    }
-
-    struct SwapResult has copy, drop {
-        amount_in: u64,
-        amount_out: u64,
-        fee_amount: u64,
-        ref_fee_amount: u64,
-    }
-
-    struct SwapStepResult has copy, drop, store {
-        current_sqrt_price: u128,
-        target_sqrt_price: u128,
-        current_liquidity: u128,
-        amount_in: u64,
-        amount_out: u64,
-        fee_amount: u64,
-        remainer_amount: u64,
-    }
-
-    struct Tick has copy, drop, store {
-        index: I64,
-        sqrt_price: u128,
-        liquidity_net: integer_mate::i128::I128,
-        liquidity_gross: u128,
-        fee_growth_outside_a: u128,
-        fee_growth_outside_b: u128,
-        rewarders_growth_outside: vector<u128>,
     }
 
     #[event]
@@ -409,91 +402,96 @@ module tap::pool {
         some<Tick>(*borrow<I64, Tick>(&pool.ticks, tick_idx))
     }
 
-    // public fun calculate_swap_result<T0, T1>(arg0: address, arg1: bool, arg2: bool, arg3: u64) : CalculatedSwapResult acquires Pool {
-    //     let v0 = borrow_global<Pool<T0, T1>>(arg0);
-    //     let v1 = v0.current_sqrt_price;
-    //     let v2 = v0.liquidity;
-    //     let v3 = default_swap_result();
-    //     let v4 = arg3;
-    //     let v5 = v0.current_tick_index;
-    //     let v6 = tick_max(v0.tick_spacing);
-    //     let v7 = CalculatedSwapResult{
-    //         amount_in        : 0,
-    //         amount_out       : 0,
-    //         fee_amount       : 0,
-    //         fee_rate         : v0.fee_rate,
-    //         after_sqrt_price : v0.current_sqrt_price,
-    //         is_exceed        : false,
-    //         step_results     : 0x1::vector::empty<SwapStepResult>(),
-    //     };
-    //     while (v4 > 0) {
-    //         if (integer_mate::i64::gt(v5, v6) || integer_mate::i64::lt(v5, tick_min(v0.tick_spacing))) {
-    //             v7.is_exceed = true;
-    //             break
-    //         };
-    //         let v8 = get_next_tick_for_swap<T0, T1>(v0, v5, arg1, v6);
-    //         if (0x1::option::is_none<Tick>(&v8)) {
-    //             v7.is_exceed = true;
-    //             break
-    //         };
-    //         let v9 = 0x1::option::destroy_some<Tick>(v8);
-    //         let v10 = v9.sqrt_price;
-    //         let (v11, v12, v13, v14) = tap::clmm_math::compute_swap_step(v1, v10, v2, v4, v0.fee_rate, arg1, arg2);
-    //         if (v11 != 0 || v14 != 0) {
-    //             if (arg2) {
-    //                 let v15 = check_sub_remainer_amount(v4, v11);
-    //                 v4 = check_sub_remainer_amount(v15, v14);
-    //             } else {
-    //                 v4 = check_sub_remainer_amount(v4, v12);
-    //             };
-    //             let v16 = &mut v3;
-    //             update_swap_result(v16, v11, v12, v14);
-    //         };
-    //         let v17 = SwapStepResult{
-    //             current_sqrt_price : v1,
-    //             target_sqrt_price  : v10,
-    //             current_liquidity  : v2,
-    //             amount_in          : v11,
-    //             amount_out         : v12,
-    //             fee_amount         : v14,
-    //             remainer_amount    : v4,
-    //         };
-    //         0x1::vector::push_back<SwapStepResult>(&mut v7.step_results, v17);
-    //         if (v13 == v9.sqrt_price) {
-    //             v1 = v9.sqrt_price;
-    //             let v18 = if (arg1) {
-    //                 integer_mate::i128::neg(v9.liquidity_net)
-    //             } else {
-    //                 v9.liquidity_net
-    //             };
-    //             if (!integer_mate::i128::is_neg(v18)) {
-    //                 let (v19, v20) = integer_mate::math_u128::overflowing_add(v2, integer_mate::i128::abs_u128(v18));
-    //                 if (v20) {
-    //                     abort 7
-    //                 };
-    //                 v2 = v19;
-    //             } else {
-    //                 let (v21, v22) = integer_mate::math_u128::overflowing_sub(v2, integer_mate::i128::abs_u128(v18));
-    //                 if (v22) {
-    //                     abort 8
-    //                 };
-    //                 v2 = v21;
-    //             };
-    //         } else {
-    //             v1 = v13;
-    //         };
-    //         if (arg1) {
-    //             v5 = integer_mate::i64::sub(v9.index, integer_mate::i64::from(1));
-    //             continue
-    //         };
-    //         v5 = v9.index;
-    //     };
-    //     v7.amount_in = v3.amount_in;
-    //     v7.amount_out = v3.amount_out;
-    //     v7.fee_amount = v3.fee_amount;
-    //     v7.after_sqrt_price = v1;
-    //     v7
-    // }
+    public fun calculate_swap_result<T0, T1>(
+        arg0: address,
+        arg1: bool,
+        arg2: bool,
+        arg3: u64
+    ): CalculatedSwapResult acquires Pool {
+        let v0 = borrow_global<Pool<T0, T1>>(arg0);
+        let v1 = v0.current_sqrt_price;
+        let v2 = v0.liquidity;
+        let v3 = default_swap_result();
+        let v4 = arg3;
+        let v5 = v0.current_tick_index;
+        let v6 = tick_max(v0.tick_spacing);
+        let v7 = CalculatedSwapResult {
+            amount_in: 0,
+            amount_out: 0,
+            fee_amount: 0,
+            fee_rate: v0.fee_rate,
+            after_sqrt_price: v0.current_sqrt_price,
+            is_exceed: false,
+            step_results: 0x1::vector::empty<SwapStepResult>(),
+        };
+        while (v4 > 0) {
+            if (integer_mate::i64::gt(v5, v6) || integer_mate::i64::lt(v5, tick_min(v0.tick_spacing))) {
+                v7.is_exceed = true;
+                break
+            };
+            let v8 = get_next_tick_for_swap<T0, T1>(v0, v5, arg1, v6);
+            if (0x1::option::is_none<Tick>(&v8)) {
+                v7.is_exceed = true;
+                break
+            };
+            let v9 = 0x1::option::destroy_some<Tick>(v8);
+            let v10 = v9.sqrt_price;
+            let (v11, v12, v13, v14) = tap::clmm_math::compute_swap_step(v1, v10, v2, v4, v0.fee_rate, arg1, arg2);
+            if (v11 != 0 || v14 != 0) {
+                if (arg2) {
+                    let v15 = check_sub_remainer_amount(v4, v11);
+                    v4 = check_sub_remainer_amount(v15, v14);
+                } else {
+                    v4 = check_sub_remainer_amount(v4, v12);
+                };
+                let v16 = &mut v3;
+                update_swap_result(v16, v11, v12, v14);
+            };
+            let v17 = SwapStepResult {
+                current_sqrt_price: v1,
+                target_sqrt_price: v10,
+                current_liquidity: v2,
+                amount_in: v11,
+                amount_out: v12,
+                fee_amount: v14,
+                remainer_amount: v4,
+            };
+            0x1::vector::push_back<SwapStepResult>(&mut v7.step_results, v17);
+            if (v13 == v9.sqrt_price) {
+                v1 = v9.sqrt_price;
+                let v18 = if (arg1) {
+                    integer_mate::i128::neg(v9.liquidity_net)
+                } else {
+                    v9.liquidity_net
+                };
+                if (!integer_mate::i128::is_neg(v18)) {
+                    let (v19, v20) = integer_mate::math_u128::overflowing_add(v2, integer_mate::i128::abs_u128(v18));
+                    if (v20) {
+                        abort 7
+                    };
+                    v2 = v19;
+                } else {
+                    let (v21, v22) = integer_mate::math_u128::overflowing_sub(v2, integer_mate::i128::abs_u128(v18));
+                    if (v22) {
+                        abort 8
+                    };
+                    v2 = v21;
+                };
+            } else {
+                v1 = v13;
+            };
+            if (arg1) {
+                v5 = integer_mate::i64::sub(v9.index, integer_mate::i64::from(1));
+                continue
+            };
+            v5 = v9.index;
+        };
+        v7.amount_in = v3.amount_in;
+        v7.amount_out = v3.amount_out;
+        v7.fee_amount = v3.fee_amount;
+        v7.after_sqrt_price = v1;
+        v7
+    }
 
     // public fun check_position_authority<T0, T1>(arg0: &signer, arg1: address, arg2: u64) acquires Pool {
     //     let v0 = borrow_global<Pool<T0, T1>>(arg1);
@@ -642,43 +640,55 @@ module tap::pool {
     //     v7
     // }
 
-    // fun cross_tick_and_update_liquidity<T0, T1>(arg0: &mut Pool<T0, T1>, arg1: integer_mate::i64::I64, arg2: bool) {
-    //     let v0 = 0x1::table::borrow_mut<integer_mate::i64::I64, Tick>(&mut arg0.ticks, arg1);
-    //     let v1 = if (arg2) {
-    //         integer_mate::i128::neg(v0.liquidity_net)
-    //     } else {
-    //         v0.liquidity_net
-    //     };
-    //     if (!integer_mate::i128::is_neg(v1)) {
-    //         let (v2, v3) = integer_mate::math_u128::overflowing_add(arg0.liquidity, integer_mate::i128::abs_u128(v1));
-    //         if (v3) {
-    //             abort 7
-    //         };
-    //         arg0.liquidity = v2;
-    //     } else {
-    //         let (v4, v5) = integer_mate::math_u128::overflowing_sub(arg0.liquidity, integer_mate::i128::abs_u128(v1));
-    //         if (v5) {
-    //             abort 8
-    //         };
-    //         arg0.liquidity = v4;
-    //     };
-    //     v0.fee_growth_outside_a = integer_mate::math_u128::wrapping_sub(arg0.fee_growth_global_a, v0.fee_growth_outside_a);
-    //     v0.fee_growth_outside_b = integer_mate::math_u128::wrapping_sub(arg0.fee_growth_global_b, v0.fee_growth_outside_b);
-    //     let v6 = 0;
-    //     while (v6 < 0x1::vector::length<Rewarder>(&arg0.rewarder_infos)) {
-    //         *0x1::vector::borrow_mut<u128>(&mut v0.rewarders_growth_outside, v6) = integer_mate::math_u128::wrapping_sub(0x1::vector::borrow<Rewarder>(&arg0.rewarder_infos, v6).growth_global, *0x1::vector::borrow<u128>(&v0.rewarders_growth_outside, v6));
-    //         v6 = v6 + 1;
-    //     };
-    // }
+    fun cross_tick_and_update_liquidity<T0, T1>(arg0: &mut Pool<T0, T1>, arg1: integer_mate::i64::I64, arg2: bool) {
+        let v0 = 0x1::table::borrow_mut<integer_mate::i64::I64, Tick>(&mut arg0.ticks, arg1);
+        let v1 = if (arg2) {
+            integer_mate::i128::neg(v0.liquidity_net)
+        } else {
+            v0.liquidity_net
+        };
+        if (!integer_mate::i128::is_neg(v1)) {
+            let (v2, v3) = integer_mate::math_u128::overflowing_add(arg0.liquidity, integer_mate::i128::abs_u128(v1));
+            if (v3) {
+                abort 7
+            };
+            arg0.liquidity = v2;
+        } else {
+            let (v4, v5) = integer_mate::math_u128::overflowing_sub(arg0.liquidity, integer_mate::i128::abs_u128(v1));
+            if (v5) {
+                abort 8
+            };
+            arg0.liquidity = v4;
+        };
+        v0.fee_growth_outside_a = integer_mate::math_u128::wrapping_sub(
+            arg0.fee_growth_global_a,
+            v0.fee_growth_outside_a
+        );
+        v0.fee_growth_outside_b = integer_mate::math_u128::wrapping_sub(
+            arg0.fee_growth_global_b,
+            v0.fee_growth_outside_b
+        );
+        let v6 = 0;
+        while (v6 < 0x1::vector::length<Rewarder>(&arg0.rewarder_infos)) {
+            *0x1::vector::borrow_mut<u128>(
+                &mut v0.rewarders_growth_outside,
+                v6
+            ) = integer_mate::math_u128::wrapping_sub(
+                0x1::vector::borrow<Rewarder>(&arg0.rewarder_infos, v6).growth_global,
+                *0x1::vector::borrow<u128>(&v0.rewarders_growth_outside, v6)
+            );
+            v6 = v6 + 1;
+        };
+    }
 
-    // fun default_swap_result() : SwapResult {
-    //     SwapResult{
-    //         amount_in      : 0,
-    //         amount_out     : 0,
-    //         fee_amount     : 0,
-    //         ref_fee_amount : 0,
-    //     }
-    // }
+    fun default_swap_result(): SwapResult {
+        SwapResult {
+            amount_in: 0,
+            amount_out: 0,
+            fee_amount: 0,
+            ref_fee_amount: 0,
+        }
+    }
 
     fun default_tick(arg0: I64): Tick {
         Tick {
@@ -750,43 +760,59 @@ module tap::pool {
         (v2, v4, v3)
     }
 
-    // public fun flash_swap<T0, T1>(arg0: address, arg1: address, arg2: 0x1::string::String, arg3: bool, arg4: bool, arg5: u64, arg6: u128) : (0x1::coin::Coin<T0>, 0x1::coin::Coin<T1>, FlashSwapReceipt<T0, T1>) acquires Pool {
-    //     let v0 = borrow_global_mut<Pool<T0, T1>>(arg0);
-    //     assert_status<T0, T1>(v0);
-    //     update_rewarder<T0, T1>(v0);
-    //     if (arg3) {
-    //         assert!(v0.current_sqrt_price > arg6 && arg6 >= tap::tick_math::min_sqrt_price(), 22);
-    //     } else {
-    //         assert!(v0.current_sqrt_price < arg6 && arg6 <= tap::tick_math::max_sqrt_price(), 22);
-    //     };
-    //     let v1 = swap_in_pool<T0, T1>(v0, arg3, arg4, arg6, arg5, tap::config::get_protocol_fee_rate(), tap::partner::get_ref_fee_rate(arg2));
-    //     let v2 = SwapEvent{
-    //         atob           : arg3,
-    //         pool_address   : arg0,
-    //         swap_from      : arg1,
-    //         partner        : arg2,
-    //         amount_in      : v1.amount_in,
-    //         amount_out     : v1.amount_out,
-    //         ref_amount     : v1.ref_fee_amount,
-    //         fee_amount     : v1.fee_amount,
-    //         vault_a_amount : 0x1::coin::value<T0>(&v0.coin_a),
-    //         vault_b_amount : 0x1::coin::value<T1>(&v0.coin_b),
-    //     };
-    //     0x1::event::emit_event<SwapEvent>(&mut v0.swap_events, v2);
-    //     let (v3, v4) = if (arg3) {
-    //         (0x1::coin::zero<T0>(), 0x1::coin::extract<T1>(&mut v0.coin_b, v1.amount_out))
-    //     } else {
-    //         (0x1::coin::extract<T0>(&mut v0.coin_a, v1.amount_out), 0x1::coin::zero<T1>())
-    //     };
-    //     let v5 = FlashSwapReceipt<T0, T1>{
-    //         pool_address   : arg0,
-    //         a2b            : arg3,
-    //         partner_name   : arg2,
-    //         pay_amount     : v1.amount_in + v1.fee_amount,
-    //         ref_fee_amount : v1.ref_fee_amount,
-    //     };
-    //     (v3, v4, v5)
-    // }
+    public fun flash_swap<T0, T1>(
+        arg0: address,
+        arg1: address,
+        arg2: 0x1::string::String,
+        arg3: bool,
+        arg4: bool,
+        arg5: u64,
+        arg6: u128
+    ): (0x1::coin::Coin<T0>, 0x1::coin::Coin<T1>, FlashSwapReceipt<T0, T1>) acquires Pool {
+        let v0 = borrow_global_mut<Pool<T0, T1>>(arg0);
+        assert_status<T0, T1>(v0);
+        update_rewarder<T0, T1>(v0);
+        if (arg3) {
+            assert!(v0.current_sqrt_price > arg6 && arg6 >= tap::tick_math::min_sqrt_price(), 22);
+        } else {
+            assert!(v0.current_sqrt_price < arg6 && arg6 <= tap::tick_math::max_sqrt_price(), 22);
+        };
+        let v1 = swap_in_pool<T0, T1>(
+            v0,
+            arg3,
+            arg4,
+            arg6,
+            arg5,
+            tap::config::get_protocol_fee_rate(),
+            0, // tap::partner::get_ref_fee_rate(arg2)
+        );
+        let v2 = SwapEvent {
+            atob: arg3,
+            pool_address: arg0,
+            swap_from: arg1,
+            partner: arg2,
+            amount_in: v1.amount_in,
+            amount_out: v1.amount_out,
+            ref_amount: v1.ref_fee_amount,
+            fee_amount: v1.fee_amount,
+            vault_a_amount: 0x1::coin::value<T0>(&v0.coin_a),
+            vault_b_amount: 0x1::coin::value<T1>(&v0.coin_b),
+        };
+        0x1::event::emit(v2);
+        let (v3, v4) = if (arg3) {
+            (0x1::coin::zero<T0>(), 0x1::coin::extract<T1>(&mut v0.coin_b, v1.amount_out))
+        } else {
+            (0x1::coin::extract<T0>(&mut v0.coin_a, v1.amount_out), 0x1::coin::zero<T1>())
+        };
+        let v5 = FlashSwapReceipt<T0, T1> {
+            pool_address: arg0,
+            a2b: arg3,
+            partner_name: arg2,
+            pay_amount: v1.amount_in + v1.fee_amount,
+            ref_fee_amount: v1.ref_fee_amount,
+        };
+        (v3, v4, v5)
+    }
 
     fun get_fee_in_tick_range<T0, T1>(
         pool: &Pool<T0, T1>,
@@ -1148,35 +1174,35 @@ module tap::pool {
         0x1::coin::merge<T1>(&mut v3.coin_b, arg1);
     }
 
-    // public fun repay_flash_swap<T0, T1>(
-    //     arg0: 0x1::coin::Coin<T0>,
-    //     arg1: 0x1::coin::Coin<T1>,
-    //     arg2: FlashSwapReceipt<T0, T1>
-    // ) acquires Pool {
-    //     let FlashSwapReceipt<T0, T1> {
-    //         pool_address: v0,
-    //         a2b: v1,
-    //         partner_name: v2,
-    //         pay_amount: v3,
-    //         ref_fee_amount: v4,
-    //     } = arg2;
-    //     let v5 = borrow_global_mut<Pool<T0, T1>>(v0);
-    //     if (v1) {
-    //         assert!(0x1::coin::value<T0>(&arg0) == v3, 6);
-    //         if (v4 > 0) {
-    //             tap::partner::receive_ref_fee<T0>(v2, 0x1::coin::extract<T0>(&mut arg0, v4));
-    //         };
-    //         0x1::coin::merge<T0>(&mut v5.coin_a, arg0);
-    //         0x1::coin::destroy_zero<T1>(arg1);
-    //     } else {
-    //         assert!(0x1::coin::value<T1>(&arg1) == v3, 6);
-    //         if (v4 > 0) {
-    //             tap::partner::receive_ref_fee<T1>(v2, 0x1::coin::extract<T1>(&mut arg1, v4));
-    //         };
-    //         0x1::coin::merge<T1>(&mut v5.coin_b, arg1);
-    //         0x1::coin::destroy_zero<T0>(arg0);
-    //     };
-    // }
+    public fun repay_flash_swap<T0, T1>(
+        arg0: 0x1::coin::Coin<T0>,
+        arg1: 0x1::coin::Coin<T1>,
+        arg2: FlashSwapReceipt<T0, T1>
+    ) acquires Pool {
+        let FlashSwapReceipt<T0, T1> {
+            pool_address: v0,
+            a2b: v1,
+            partner_name: v2,
+            pay_amount: v3,
+            ref_fee_amount: v4,
+        } = arg2;
+        let v5 = borrow_global_mut<Pool<T0, T1>>(v0);
+        if (v1) {
+            assert!(0x1::coin::value<T0>(&arg0) == v3, 6);
+            // if (v4 > 0) {
+            //     tap::partner::receive_ref_fee<T0>(v2, 0x1::coin::extract<T0>(&mut arg0, v4));
+            // };
+            0x1::coin::merge<T0>(&mut v5.coin_a, arg0);
+            0x1::coin::destroy_zero<T1>(arg1);
+        } else {
+            assert!(0x1::coin::value<T1>(&arg1) == v3, 6);
+            // if (v4 > 0) {
+            //     tap::partner::receive_ref_fee<T1>(v2, 0x1::coin::extract<T1>(&mut arg1, v4));
+            // };
+            0x1::coin::merge<T1>(&mut v5.coin_b, arg1);
+            0x1::coin::destroy_zero<T0>(arg0);
+        };
+    }
 
     public fun reset_init_price_v2<T0, T1>(arg0: &signer, arg1: address, arg2: u128) acquires Pool {
         tap::config::assert_reset_init_price_authority(arg0);
@@ -1202,62 +1228,79 @@ module tap::pool {
         v0
     }
 
-    // fun swap_in_pool<T0, T1>(arg0: &mut Pool<T0, T1>, arg1: bool, arg2: bool, arg3: u128, arg4: u64, arg5: u64, arg6: u64) : SwapResult {
-    //     let v0 = default_swap_result();
-    //     let v1 = arg0.current_tick_index;
-    //     let v2 = tick_max(arg0.tick_spacing);
-    //     while (arg4 > 0 && arg0.current_sqrt_price != arg3) {
-    //         if (integer_mate::i64::gt(v1, v2) || integer_mate::i64::lt(v1, tick_min(arg0.tick_spacing))) {
-    //             abort 12
-    //         };
-    //         let v3 = get_next_tick_for_swap<T0, T1>(arg0, v1, arg1, v2);
-    //         if (0x1::option::is_none<Tick>(&v3)) {
-    //             abort 12
-    //         };
-    //         let v4 = 0x1::option::destroy_some<Tick>(v3);
-    //         let v5 = if (arg1) {
-    //             integer_mate::math_u128::max(arg3, v4.sqrt_price)
-    //         } else {
-    //             integer_mate::math_u128::min(arg3, v4.sqrt_price)
-    //         };
-    //         let (v6, v7, v8, v9) = tap::clmm_math::compute_swap_step(arg0.current_sqrt_price, v5, arg0.liquidity, arg4, arg0.fee_rate, arg1, arg2);
-    //         if (v6 != 0 || v9 != 0) {
-    //             if (arg2) {
-    //                 let v10 = check_sub_remainer_amount(arg4, v6);
-    //                 arg4 = check_sub_remainer_amount(v10, v9);
-    //             } else {
-    //                 arg4 = check_sub_remainer_amount(arg4, v7);
-    //             };
-    //             let v11 = &mut v0;
-    //             update_swap_result(v11, v6, v7, v9);
-    //             let v12 = update_pool_fee<T0, T1>(arg0, v9, arg6, arg5, arg1);
-    //             v0.ref_fee_amount = v12;
-    //         };
-    //         if (v8 == v4.sqrt_price) {
-    //             arg0.current_sqrt_price = v4.sqrt_price;
-    //             let v13 = if (arg1) {
-    //                 integer_mate::i64::sub(v4.index, integer_mate::i64::from(1))
-    //             } else {
-    //                 v4.index
-    //             };
-    //             arg0.current_tick_index = v13;
-    //             cross_tick_and_update_liquidity<T0, T1>(arg0, v4.index, arg1);
-    //         } else {
-    //             arg0.current_sqrt_price = v8;
-    //             arg0.current_tick_index = tap::tick_math::get_tick_at_sqrt_price(v8);
-    //         };
-    //         if (arg1) {
-    //             v1 = integer_mate::i64::sub(v4.index, integer_mate::i64::from(1));
-    //             continue
-    //         };
-    //         v1 = v4.index;
-    //     };
-    //     v0
-    // }
+    fun swap_in_pool<T0, T1>(
+        pool: &mut Pool<T0, T1>,
+        arg1: bool,
+        arg2: bool,
+        arg3: u128,
+        arg4: u64,
+        arg5: u64,
+        ref_fee_rate: u64
+    ): SwapResult {
+        let swap_result = default_swap_result();
+        let current_tick_idx = pool.current_tick_index;
+        let max_tick = tick_max(pool.tick_spacing);
+        while (arg4 > 0 && pool.current_sqrt_price != arg3) {
+            if (integer_mate::i64::gt(current_tick_idx, max_tick) || integer_mate::i64::lt(
+                current_tick_idx, tick_min(pool.tick_spacing))) {
+                abort 12
+            };
+            let next_tick = get_next_tick_for_swap<T0, T1>(pool, current_tick_idx, arg1, max_tick);
+            if (0x1::option::is_none<Tick>(&next_tick)) {
+                abort 12
+            };
+            let next_tick = 0x1::option::destroy_some<Tick>(next_tick);
+            let v5 = if (arg1) {
+                integer_mate::math_u128::max(arg3, next_tick.sqrt_price)
+            } else {
+                integer_mate::math_u128::min(arg3, next_tick.sqrt_price)
+            };
+            let (v6, v7, v8, v9) = tap::clmm_math::compute_swap_step(
+                pool.current_sqrt_price,
+                v5,
+                pool.liquidity,
+                arg4,
+                pool.fee_rate,
+                arg1,
+                arg2
+            );
+            if (v6 != 0 || v9 != 0) {
+                if (arg2) {
+                    let v10 = check_sub_remainer_amount(arg4, v6);
+                    arg4 = check_sub_remainer_amount(v10, v9);
+                } else {
+                    arg4 = check_sub_remainer_amount(arg4, v7);
+                };
+                let v11 = &mut swap_result;
+                update_swap_result(v11, v6, v7, v9);
+                let v12 = update_pool_fee<T0, T1>(pool, v9, ref_fee_rate, arg5, arg1);
+                swap_result.ref_fee_amount = v12;
+            };
+            if (v8 == next_tick.sqrt_price) {
+                pool.current_sqrt_price = next_tick.sqrt_price;
+                let v13 = if (arg1) {
+                    integer_mate::i64::sub(next_tick.index, integer_mate::i64::from(1))
+                } else {
+                    next_tick.index
+                };
+                pool.current_tick_index = v13;
+                cross_tick_and_update_liquidity<T0, T1>(pool, next_tick.index, arg1);
+            } else {
+                pool.current_sqrt_price = v8;
+                pool.current_tick_index = tap::tick_math::get_tick_at_sqrt_price(v8);
+            };
+            if (arg1) {
+                current_tick_idx = integer_mate::i64::sub(next_tick.index, integer_mate::i64::from(1));
+                continue
+            };
+            current_tick_idx = next_tick.index;
+        };
+        swap_result
+    }
 
-    // public fun swap_pay_amount<T0, T1>(arg0: &FlashSwapReceipt<T0, T1>) : u64 {
-    //     arg0.pay_amount
-    // }
+    public fun swap_pay_amount<T0, T1>(arg0: &FlashSwapReceipt<T0, T1>): u64 {
+        arg0.pay_amount
+    }
 
     /// Determines given index belongs to which tick group.
     /// Tick group is devided by tick spacing and multiply by 1000.
@@ -1581,10 +1624,13 @@ module tap::pool {
     }
 
     #[test_only]
+    use integer_mate::i64;
+    #[test_only]
+    use integer_mate::i64::{from_u64, lte};
+
+    #[test_only]
     public fun test_indexes(spacing: u64) {
-        let steps: u64 = 0;
         let curr_index: I64 = tick_min(spacing);
-        // let curr_index: I64 = tick_max(spacing);
         while (lte(curr_index, tick_max(spacing))) {
             let (tick_indexes_idx, offset) = tick_position(curr_index, spacing);
             curr_index = i64::add(curr_index, from_u64(spacing));

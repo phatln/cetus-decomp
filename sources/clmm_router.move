@@ -1,39 +1,39 @@
 module tap::clmm_router {
-    // public entry fun swap<T0, T1>(arg0: &signer, arg1: address, arg2: bool, arg3: bool, arg4: u64, arg5: u64, arg6: u128, arg7: 0x1::string::String) {
-    //     let v0 = 0x1::signer::address_of(arg0);
-    //     let (v1, v2, v3) = tap::pool::flash_swap<T0, T1>(arg1, v0, arg7, arg2, arg3, arg4, arg6);
-    //     let v4 = v3;
-    //     let v5 = v2;
-    //     let v6 = v1;
-    //     let v7 = tap::pool::swap_pay_amount<T0, T1>(&v4);
-    //     let v8 = if (arg2) {
-    //         0x1::coin::value<T1>(&v5)
-    //     } else {
-    //         0x1::coin::value<T0>(&v6)
-    //     };
-    //     if (arg3) {
-    //         assert!(v7 == arg4, 7);
-    //         assert!(v8 >= arg5, 2);
-    //     } else {
-    //         assert!(v8 == arg4, 7);
-    //         assert!(v7 <= arg5, 1);
-    //     };
-    //     if (arg2) {
-    //         if (!0x1::coin::is_account_registered<T1>(v0)) {
-    //             0x1::coin::register<T1>(arg0);
-    //         };
-    //         0x1::coin::destroy_zero<T0>(v6);
-    //         0x1::coin::deposit<T1>(v0, v5);
-    //         tap::pool::repay_flash_swap<T0, T1>(0x1::coin::withdraw<T0>(arg0, v7), 0x1::coin::zero<T1>(), v4);
-    //     } else {
-    //         if (!0x1::coin::is_account_registered<T0>(v0)) {
-    //             0x1::coin::register<T0>(arg0);
-    //         };
-    //         0x1::coin::destroy_zero<T1>(v5);
-    //         0x1::coin::deposit<T0>(v0, v6);
-    //         tap::pool::repay_flash_swap<T0, T1>(0x1::coin::zero<T0>(), 0x1::coin::withdraw<T1>(arg0, v7), v4);
-    //     };
-    // }
+    public entry fun swap<T0, T1>(arg0: &signer, arg1: address, arg2: bool, arg3: bool, arg4: u64, arg5: u64, arg6: u128, arg7: 0x1::string::String) {
+        let v0 = 0x1::signer::address_of(arg0);
+        let (v1, v2, v3) = tap::pool::flash_swap<T0, T1>(arg1, v0, arg7, arg2, arg3, arg4, arg6);
+        let v4 = v3;
+        let v5 = v2;
+        let v6 = v1;
+        let v7 = tap::pool::swap_pay_amount<T0, T1>(&v4);
+        let v8 = if (arg2) {
+            0x1::coin::value<T1>(&v5)
+        } else {
+            0x1::coin::value<T0>(&v6)
+        };
+        if (arg3) {
+            assert!(v7 == arg4, 7);
+            assert!(v8 >= arg5, 2);
+        } else {
+            assert!(v8 == arg4, 7);
+            assert!(v7 <= arg5, 1);
+        };
+        if (arg2) {
+            if (!0x1::coin::is_account_registered<T1>(v0)) {
+                0x1::coin::register<T1>(arg0);
+            };
+            0x1::coin::destroy_zero<T0>(v6);
+            0x1::coin::deposit<T1>(v0, v5);
+            tap::pool::repay_flash_swap<T0, T1>(0x1::coin::withdraw<T0>(arg0, v7), 0x1::coin::zero<T1>(), v4);
+        } else {
+            if (!0x1::coin::is_account_registered<T0>(v0)) {
+                0x1::coin::register<T0>(arg0);
+            };
+            0x1::coin::destroy_zero<T1>(v5);
+            0x1::coin::deposit<T0>(v0, v6);
+            tap::pool::repay_flash_swap<T0, T1>(0x1::coin::zero<T0>(), 0x1::coin::withdraw<T1>(arg0, v7), v4);
+        };
+    }
 
     public entry fun accept_protocol_authority(arg0: &signer) {
         tap::config::accept_protocol_authority(arg0);
