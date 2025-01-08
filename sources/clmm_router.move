@@ -26,7 +26,7 @@ module tap::clmm_router {
             value<T0>(&coin_a)
         };
 
-        print(&format4(&b"bai={} pa{} ai={} al={}", by_amount_in, pay_amount, amount_in, amount_limit));
+        // print(&format4(&b"bai={} pa{} ai={} al={}", by_amount_in, pay_amount, amount_in, amount_limit));
 
         if (by_amount_in) {
             assert!(pay_amount == amount, 7);

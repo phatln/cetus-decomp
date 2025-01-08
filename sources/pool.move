@@ -799,7 +799,7 @@ module tap::pool {
             vault_a_amount: 0x1::coin::value<T0>(&v0.coin_a),
             vault_b_amount: 0x1::coin::value<T1>(&v0.coin_b),
         };
-        print(&swap_event);
+        // print(&swap_event);
         0x1::event::emit(swap_event);
         let (coin_a, coin_b) = if (a2b) {
             (0x1::coin::zero<T0>(), 0x1::coin::extract<T1>(&mut v0.coin_b, swap_result.amount_out))
@@ -813,7 +813,7 @@ module tap::pool {
             pay_amount: swap_result.amount_in + swap_result.fee_amount,
             ref_fee_amount: swap_result.ref_fee_amount,
         };
-        print(&flash_swap_receipt);
+        // print(&flash_swap_receipt);
         (coin_a, coin_b, flash_swap_receipt)
     }
 
