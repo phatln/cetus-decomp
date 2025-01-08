@@ -1,37 +1,62 @@
 module tap::clmm_router {
-    public entry fun swap<T0, T1>(arg0: &signer, arg1: address, arg2: bool, arg3: bool, arg4: u64, arg5: u64, arg6: u128, arg7: 0x1::string::String) {
-        let v0 = 0x1::signer::address_of(arg0);
-        let (v1, v2, v3) = tap::pool::flash_swap<T0, T1>(arg1, v0, arg7, arg2, arg3, arg4, arg6);
-        let v4 = v3;
-        let v5 = v2;
-        let v6 = v1;
-        let v7 = tap::pool::swap_pay_amount<T0, T1>(&v4);
-        let v8 = if (arg2) {
-            0x1::coin::value<T1>(&v5)
+    public entry fun swap<T0, T1>(
+        signer: &signer,
+        pool_addr: address,
+        a2b: bool,
+        by_amount_in: bool,
+        amount: u64,
+        amount_limit: u64,
+        sqrt_price: u128,
+        partner_name: 0x1::string::String
+    ) {
+        let signer_addr = 0x1::signer::address_of(signer);
+        let (coin_a, coin_b, flash_swap_receipt) = tap::pool::flash_swap<T0, T1>(
+            pool_addr,
+            signer_addr,
+            partner_name,
+            a2b,
+            by_amount_in,
+            amount,
+            sqrt_price
+        );
+        let pay_amount = tap::pool::swap_pay_amount<T0, T1>(&flash_swap_receipt);
+        let amount_in = if (a2b) {
+            value<T1>(&coin_b)
         } else {
-            0x1::coin::value<T0>(&v6)
+            value<T0>(&coin_a)
         };
-        if (arg3) {
-            assert!(v7 == arg4, 7);
-            assert!(v8 >= arg5, 2);
+
+        print(&format4(&b"bai={} pa{} ai={} al={}", by_amount_in, pay_amount, amount_in, amount_limit));
+
+        if (by_amount_in) {
+            assert!(pay_amount == amount, 7);
+            assert!(amount_in >= amount_limit, 2);
         } else {
-            assert!(v8 == arg4, 7);
-            assert!(v7 <= arg5, 1);
+            assert!(amount_in == amount, 7);
+            assert!(pay_amount <= amount_limit, 1);
         };
-        if (arg2) {
-            if (!0x1::coin::is_account_registered<T1>(v0)) {
-                0x1::coin::register<T1>(arg0);
+        if (a2b) {
+            if (!is_account_registered<T1>(signer_addr)) {
+                register<T1>(signer);
             };
-            0x1::coin::destroy_zero<T0>(v6);
-            0x1::coin::deposit<T1>(v0, v5);
-            tap::pool::repay_flash_swap<T0, T1>(0x1::coin::withdraw<T0>(arg0, v7), 0x1::coin::zero<T1>(), v4);
+            destroy_zero<T0>(coin_a);
+            deposit<T1>(signer_addr, coin_b);
+            tap::pool::repay_flash_swap<T0, T1>(
+                withdraw<T0>(signer, pay_amount),
+                zero<T1>(),
+                flash_swap_receipt
+            );
         } else {
-            if (!0x1::coin::is_account_registered<T0>(v0)) {
-                0x1::coin::register<T0>(arg0);
+            if (!is_account_registered<T0>(signer_addr)) {
+                register<T0>(signer);
             };
-            0x1::coin::destroy_zero<T1>(v5);
-            0x1::coin::deposit<T0>(v0, v6);
-            tap::pool::repay_flash_swap<T0, T1>(0x1::coin::zero<T0>(), 0x1::coin::withdraw<T1>(arg0, v7), v4);
+            destroy_zero<T1>(coin_b);
+            deposit<T0>(signer_addr, coin_a);
+            tap::pool::repay_flash_swap<T0, T1>(
+                zero<T0>(),
+                withdraw<T1>(signer, pay_amount),
+                flash_swap_receipt
+            );
         };
     }
 
@@ -263,6 +288,7 @@ module tap::clmm_router {
             amount_b
         };
         let add_lq_receipt = tap::pool::add_liquidity_fix_coin<T0, T1>(pool_addr, amount, fix_amount_a, pos_index);
+        print(&add_lq_receipt);
         let (v5, v6) = tap::pool::add_liqudity_pay_amount<T0, T1>(&add_lq_receipt);
         if (fix_amount_a) {
             assert!(amount_a == v5 && v6 <= amount_b, 1);
@@ -312,17 +338,26 @@ module tap::clmm_router {
     //     tap::pool::update_emission<T0, T1, T2>(arg0, arg1, arg2, arg3);
     // }
 
+    use aptos_std::debug::print;
+    use aptos_std::string_utils::{format3, format4};
+    use aptos_framework::coin::{value, is_account_registered, register, destroy_zero, deposit, withdraw, zero};
     #[test_only]
     use std::signer;
     #[test_only]
     use std::string;
     #[test_only]
+    use std::string::utf8;
+    #[test_only]
     use aptos_std::type_info::{type_of, struct_name};
     #[test_only]
     use aptos_framework::account;
     #[test_only]
-    use aptos_framework::coin::{initialize, mint, deposit, BurnCapability, FreezeCapability,
-        MintCapability, register
+    use aptos_framework::coin::{
+        initialize,
+        mint,
+        BurnCapability,
+        FreezeCapability,
+        MintCapability
     };
     #[test_only]
     use aptos_framework::timestamp;
@@ -400,16 +435,45 @@ module tap::clmm_router {
         init_module_for_test(signer);
         let pool_addr = create_pool_for_test<CoinA, CoinB>(signer, 2, 18448098543978665152);
 
-        create_fake_money<CoinA>(signer, 6, 1_000_000); // whUSDC
-        create_fake_money<CoinB>(signer, 6, 1_000_000); // lzUSDC
+        create_fake_money<CoinA>(signer, 6, 1_000_000_000000); // whUSDC
+        create_fake_money<CoinB>(signer, 6, 1_000_000_000000); // lzUSDC
         add_liquidity_fix_token<CoinA, CoinB>(signer, pool_addr,
-            10155,
-            10156,
+            10155_000,
+            10157_000,
             true,
             18446744073709107980,
             443636,
             true,
             0);
+    }
+
+    #[test]
+    fun swap_success() {
+        let signer = &account::create_account_for_test(@tap);
+        init_module_for_test(signer);
+        let pool_addr = create_pool_for_test<CoinA, CoinB>(signer, 2, 18448098543978665152);
+
+        create_fake_money<CoinA>(signer, 6, 1_000_000_000000); // whUSDC
+        create_fake_money<CoinB>(signer, 6, 1_000_000_000000); // lzUSDC
+        add_liquidity_fix_token<CoinA, CoinB>(signer, pool_addr,
+            10155_000,
+            10157_000,
+            true,
+            18446744073709107980,
+            443636,
+            true,
+            0);
+
+        swap<CoinA, CoinB>(
+            signer,
+            pool_addr,
+            true,
+            true,
+            10155,
+            10103,
+            4295048016,
+            utf8(b"")
+        );
     }
 
     #[test]

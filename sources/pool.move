@@ -1,6 +1,7 @@
 module tap::pool {
     use std::bit_vector::BitVector;
     use std::option::{none, some};
+    use aptos_std::debug::print;
     use aptos_std::table::{contains, borrow};
     use integer_mate::i64::{I64, as_u64, add, is_neg};
     use tap::tick_math::{min_tick, max_tick};
@@ -761,57 +762,59 @@ module tap::pool {
     }
 
     public fun flash_swap<T0, T1>(
-        arg0: address,
+        pool_addr: address,
         arg1: address,
-        arg2: 0x1::string::String,
-        arg3: bool,
+        partner_name: 0x1::string::String,
+        a2b: bool,
         arg4: bool,
         arg5: u64,
         arg6: u128
     ): (0x1::coin::Coin<T0>, 0x1::coin::Coin<T1>, FlashSwapReceipt<T0, T1>) acquires Pool {
-        let v0 = borrow_global_mut<Pool<T0, T1>>(arg0);
+        let v0 = borrow_global_mut<Pool<T0, T1>>(pool_addr);
         assert_status<T0, T1>(v0);
         update_rewarder<T0, T1>(v0);
-        if (arg3) {
+        if (a2b) {
             assert!(v0.current_sqrt_price > arg6 && arg6 >= tap::tick_math::min_sqrt_price(), 22);
         } else {
             assert!(v0.current_sqrt_price < arg6 && arg6 <= tap::tick_math::max_sqrt_price(), 22);
         };
-        let v1 = swap_in_pool<T0, T1>(
+        let swap_result = swap_in_pool<T0, T1>(
             v0,
-            arg3,
+            a2b,
             arg4,
             arg6,
             arg5,
             tap::config::get_protocol_fee_rate(),
             0, // tap::partner::get_ref_fee_rate(arg2)
         );
-        let v2 = SwapEvent {
-            atob: arg3,
-            pool_address: arg0,
+        let swap_event = SwapEvent {
+            atob: a2b,
+            pool_address: pool_addr,
             swap_from: arg1,
-            partner: arg2,
-            amount_in: v1.amount_in,
-            amount_out: v1.amount_out,
-            ref_amount: v1.ref_fee_amount,
-            fee_amount: v1.fee_amount,
+            partner: partner_name,
+            amount_in: swap_result.amount_in,
+            amount_out: swap_result.amount_out,
+            ref_amount: swap_result.ref_fee_amount,
+            fee_amount: swap_result.fee_amount,
             vault_a_amount: 0x1::coin::value<T0>(&v0.coin_a),
             vault_b_amount: 0x1::coin::value<T1>(&v0.coin_b),
         };
-        0x1::event::emit(v2);
-        let (v3, v4) = if (arg3) {
-            (0x1::coin::zero<T0>(), 0x1::coin::extract<T1>(&mut v0.coin_b, v1.amount_out))
+        print(&swap_event);
+        0x1::event::emit(swap_event);
+        let (coin_a, coin_b) = if (a2b) {
+            (0x1::coin::zero<T0>(), 0x1::coin::extract<T1>(&mut v0.coin_b, swap_result.amount_out))
         } else {
-            (0x1::coin::extract<T0>(&mut v0.coin_a, v1.amount_out), 0x1::coin::zero<T1>())
+            (0x1::coin::extract<T0>(&mut v0.coin_a, swap_result.amount_out), 0x1::coin::zero<T1>())
         };
-        let v5 = FlashSwapReceipt<T0, T1> {
-            pool_address: arg0,
-            a2b: arg3,
-            partner_name: arg2,
-            pay_amount: v1.amount_in + v1.fee_amount,
-            ref_fee_amount: v1.ref_fee_amount,
+        let flash_swap_receipt = FlashSwapReceipt<T0, T1> {
+            pool_address: pool_addr,
+            a2b,
+            partner_name,
+            pay_amount: swap_result.amount_in + swap_result.fee_amount,
+            ref_fee_amount: swap_result.ref_fee_amount,
         };
-        (v3, v4, v5)
+        print(&flash_swap_receipt);
+        (coin_a, coin_b, flash_swap_receipt)
     }
 
     fun get_fee_in_tick_range<T0, T1>(
