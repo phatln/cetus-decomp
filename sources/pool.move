@@ -793,8 +793,6 @@ module tap::pool {
         lower_index: I64,
         upper_index: I64
     ): (u128, u128) {
-        print_i64(lower_index);
-        print_i64(upper_index);
         let lower_tick = borrow_tick<T0, T1>(pool, lower_index);
         let upper_tick = borrow_tick<T0, T1>(pool, upper_index);
         let current_tick = pool.current_tick_index;

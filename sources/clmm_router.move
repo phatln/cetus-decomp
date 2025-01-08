@@ -334,6 +334,10 @@ module tap::clmm_router {
         tap::factory::init_module_for_test(signer);
         let aptos_account = account::create_account_for_test(@aptos_framework);
         timestamp::set_time_has_started_for_testing(&aptos_account);
+
+        tap::config::init_clmm_acl(signer);
+        tap::fee_tier::add_fee_tier(signer, 2, 100);
+        tap::fee_tier::add_fee_tier(signer, 60, 10000);
     }
 
     #[test_only]
@@ -380,8 +384,6 @@ module tap::clmm_router {
         tick_spacing: u64,
         curr_sqrt_price: u128
     ): address {
-        tap::config::init_clmm_acl(signer);
-        tap::fee_tier::add_fee_tier(signer, 60, 10000);
         tap::factory::create_pool<A, B>(signer, tick_spacing, curr_sqrt_price, string::utf8(b""))
     }
 
@@ -396,16 +398,16 @@ module tap::clmm_router {
     fun add_liquidity_pool_success() {
         let signer = &account::create_account_for_test(@tap);
         init_module_for_test(signer);
-        let pool_addr = create_pool_for_test<CoinA, CoinB>(signer, 60, 5919272212378807452);
+        let pool_addr = create_pool_for_test<CoinA, CoinB>(signer, 2, 18448098543978665152);
 
-        create_fake_money<CoinA>(signer, 6, 1_000_000); // usdc
-        create_fake_money<CoinB>(signer, 8, 1_000_000); // aptos
+        create_fake_money<CoinA>(signer, 6, 1_000_000); // whUSDC
+        create_fake_money<CoinB>(signer, 6, 1_000_000); // lzUSDC
         add_liquidity_fix_token<CoinA, CoinB>(signer, pool_addr,
-            98590,
             10155,
-            false,
-            18446744073709108036,
-            443580,
+            10156,
+            true,
+            18446744073709107980,
+            443636,
             true,
             0);
     }
