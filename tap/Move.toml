@@ -1,0 +1,24 @@
+[package]
+name = "Tap"
+version = "2.1.0"
+authors = []
+
+[addresses]
+
+[dev-addresses]
+
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-framework.git"
+rev = "mainnet"
+subdir = "aptos-framework"
+
+[dependencies.AptosToken]
+git = "https://github.com/aptos-labs/aptos-framework.git"
+rev = "mainnet"
+subdir = "aptos-token"
+
+[dependencies.IntegerMate]
+local = "../integer-mate"
+addr_subst = { "integer_mate" = "0xc4fb1d925938d1499dfd1ae4e041d0377a9a761f6da0a3c18f12a8aad7810e6d" }
+
+[dev-dependencies]

@@ -1,0 +1,5 @@
+.aptos/
+build/
+.DS_Store
+.idea/
+git 
